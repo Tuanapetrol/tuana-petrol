@@ -1443,16 +1443,35 @@ async function sbDelete(tablo, params) {
   const r = await fetch(`${SUPA_URL}/rest/v1/${tablo}?${params}`, { method:'DELETE', headers:HEADERS });
   if (!r.ok) throw new Error(await r.text());
 }
+async function sbUpsert(tablo, data) {
+  const r = await fetch(`${SUPA_URL}/rest/v1/${tablo}`, {
+    method:'POST', headers:{...HEADERS,'Prefer':'resolution=merge-duplicates,return=representation'}, body:JSON.stringify(data)
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
 
 // ═══════════════════════════════════════════════════════
 // ŞİFRE
 // ═══════════════════════════════════════════════════════
-function getSifre() { return localStorage.getItem('mmk_sifre') || '1234'; }
-function setSifre(s) { localStorage.setItem('mmk_sifre', s); }
+async function getSifre() {
+  try {
+    const rows = await sbGet('ayarlar', 'select=deger&anahtar=eq.sifre&limit=1');
+    if (rows && rows.length > 0) return rows[0].deger;
+  } catch(e) {}
+  return '1234';
+}
 
-function loginDene() {
+async function setSifre(s) {
+  try {
+    await sbUpsert('ayarlar', { anahtar: 'sifre', deger: s });
+  } catch(e) { toast('Şifre kaydedilemedi!', true); }
+}
+
+async function loginDene() {
   const v = document.getElementById('loginSifre').value;
-  if (v === getSifre()) {
+  const dogruSifre = await getSifre();
+  if (v === dogruSifre) {
     document.getElementById('loginOverlay').classList.remove('active');
     init();
   } else {
@@ -2559,7 +2578,7 @@ function menuAraclar(){
   const s=prompt('Araçlar:\n1) Günlük Rapor Paneli (F3)\n2) Yedekleme & Geri Yükleme (F4)\n3) Giriş Şifresini Değiştir\nSeçin:');
   if(s==='1')gunlukRaporEkraniAc();
   else if(s==='2')yedekEkraniAc();
-  else if(s==='3'){const y=prompt('Yeni şifre:');if(y&&y.trim()){setSifre(y.trim());toast('Şifre güncellendi!');}}
+  else if(s==='3'){const y=prompt('Yeni şifre:');if(y&&y.trim()){setSifre(y.trim()).then(()=>toast('Şifre güncellendi!'));}}
 }
 function hakkinda(){alert('MMK Veresiye Kısayolları:\n\nF3 — Tarih Seçimli Günlük Rapor\nF4 — Yedekleme & Geri Yükleme Paneli\nF5 — Borç Girişi (Detayda)\nF6 — Tahsilat Girişi (Detayda)\nESC — Kapat / Gizle\nENTER — Kaydet / Geçiş\nOk Tuşları ↑↓ — Listede gezinme');}
 
@@ -3345,34 +3364,12 @@ async function dashboardAc() {
 // ═══════════════════════════════════════════════════════
 function sekmeAc(sekme) {
   const cariPane = document.getElementById('cariPane');
-  const urunPane = document.getElementById('urunPane');
-  const toptanciPane = document.getElementById('toptanciPane');
   const tabCari = document.getElementById('tabCari');
-  const tabUrun = document.getElementById('tabUrun');
-  const tabToptanci = document.getElementById('tabToptanci');
   headerYukseklikAyarla();
 
-  // Hepsini gizle
-  cariPane.style.display = 'none';
-  urunPane.style.display = 'none';
-  toptanciPane.style.display = 'none';
-  tabCari.classList.remove('active');
-  tabUrun.classList.remove('active');
-  tabToptanci.classList.remove('active');
-
-  // Seçileni göster
-  if (sekme === 'cari') {
-    cariPane.style.display = 'grid';
-    tabCari.classList.add('active');
-  } else if (sekme === 'urun') {
-    urunPane.style.display = 'block';
-    tabUrun.classList.add('active');
-    urunleriYukle();
-  } else if (sekme === 'toptanci') {
-    toptanciPane.style.display = 'grid';
-    tabToptanci.classList.add('active');
-    toptanciYukle();
-  }
+  // Cari pane göster
+  if (cariPane) cariPane.style.display = 'grid';
+  if (tabCari) tabCari.classList.add('active');
 
   // Sekme değişince sayfa aşağı kaymasın
   try {
