@@ -1838,7 +1838,7 @@ async function detayYukle() {
       const renk=isBorc?'#ff4444':'#66bb6a';
       tr.innerHTML=`
         <td class="dcol-arrow"><span class="row-arrow" style="display:none">▶</span></td>
-`        <td class="dcol-tarih" style="color:${renk};font-size:13px">${r.tarih ? new Date(r.tarih).toLocaleString("tr-TR",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}) : ""}</td>
+        <td class="dcol-tarih" style="color:${renk};font-size:13px">${r.tarih ? new Date(r.tarih).toLocaleString("tr-TR",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}) : ""}</td>
         <td class="dcol-aciklama" style="color:${renk}">${r.aciklama}</td>
         <td class="dcol-borc" style="color:${renk}">${fmt(r.borc)}</td>
         <td class="dcol-tahsilat" style="color:${renk}">${fmt(r.tahsilat)}</td>
