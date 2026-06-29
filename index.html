@@ -1459,25 +1459,35 @@ async function getSifre() {
     const rows = await sbGet('ayarlar', 'select=deger&anahtar=eq.sifre&limit=1');
     if (rows && rows.length > 0) return rows[0].deger;
   } catch(e) {}
-  return '1234';
+  // Supabase'e ulaşamazsa localStorage'dan al
+  return localStorage.getItem('tp_sifre') || '1234';
 }
 
 async function setSifre(s) {
   try {
     await sbUpsert('ayarlar', { anahtar: 'sifre', deger: s });
-  } catch(e) { toast('Şifre kaydedilemedi!', true); }
+  } catch(e) {}
+  // Her iki yere de kaydet
+  localStorage.setItem('tp_sifre', s);
+  toast('Şifre güncellendi!');
 }
 
 async function loginDene() {
   const v = document.getElementById('loginSifre').value;
-  const dogruSifre = await getSifre();
-  if (v === dogruSifre) {
-    document.getElementById('loginOverlay').classList.remove('active');
-    init();
-  } else {
-    document.getElementById('loginError').textContent = 'Şifre hatalı!';
-    document.getElementById('loginSifre').value = '';
-    document.getElementById('loginSifre').focus();
+  if (!v) return;
+  document.getElementById('loginError').textContent = '';
+  try {
+    const dogruSifre = await getSifre();
+    if (v === dogruSifre) {
+      document.getElementById('loginOverlay').classList.remove('active');
+      init();
+    } else {
+      document.getElementById('loginError').textContent = 'Şifre hatalı!';
+      document.getElementById('loginSifre').value = '';
+      document.getElementById('loginSifre').focus();
+    }
+  } catch(e) {
+    document.getElementById('loginError').textContent = 'Bağlantı hatası!';
   }
 }
 document.getElementById('loginSifre').addEventListener('keydown', e => { if(e.key==='Enter') loginDene(); });
