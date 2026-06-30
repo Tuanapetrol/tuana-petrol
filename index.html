@@ -957,65 +957,65 @@ table.detay-table tbody td { padding:9px 12px; border-right:1px solid rgba(30,58
 <div id="yonetimPane" class="app-body" style="display:none;grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr;gap:10px;padding:10px;overflow:auto;">
 
   <!-- SOL ÜST: Yakıt Stok Paneli -->
-  <div style="background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:14px;">
-    <div style="font-family:Oswald,sans-serif;font-size:14px;font-weight:800;color:var(--blue-bright);letter-spacing:1px;margin-bottom:12px;">⛽ YAKIT STOK YÖNETİMİ</div>
-    <div id="yakitStokListesi" style="display:flex;flex-direction:column;gap:10px;"></div>
+  <div style="background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:12px;">
+    <div style="font-family:Oswald,sans-serif;font-size:13px;font-weight:800;color:var(--blue-bright);letter-spacing:1px;margin-bottom:10px;">⛽ YAKIT STOK YÖNETİMİ</div>
+    <div id="yakitStokListesi" style="display:flex;flex-direction:column;gap:8px;"></div>
   </div>
 
-  <!-- SAĞ: Kalan Stok (üst) + Günün Özeti (alt) -->
-  <div style="display:flex;flex-direction:column;gap:10px;">
-    <div style="background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:14px;">
-      <div style="font-family:Oswald,sans-serif;font-size:14px;font-weight:800;color:var(--blue-bright);letter-spacing:1px;margin-bottom:12px;">📊 KALAN STOK</div>
-      <div id="kalanStokKartlari" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;"></div>
+  <!-- SAĞ ÜST: Kalan Stok (alt alta) + Günün Özeti (yanında) -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:12px;">
+      <div style="font-family:Oswald,sans-serif;font-size:13px;font-weight:800;color:var(--blue-bright);letter-spacing:1px;margin-bottom:10px;">📊 KALAN STOK</div>
+      <div id="kalanStokKartlari" style="display:flex;flex-direction:column;gap:8px;"></div>
     </div>
-    <div style="background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:14px;">
-      <div style="font-family:Oswald,sans-serif;font-size:14px;font-weight:800;color:var(--blue-bright);letter-spacing:1px;margin-bottom:12px;">📅 GÜNÜN ÖZETİ</div>
-      <div id="gununOzeti" style="display:flex;flex-direction:column;gap:12px;"></div>
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:12px;">
+      <div style="font-family:Oswald,sans-serif;font-size:13px;font-weight:800;color:var(--blue-bright);letter-spacing:1px;margin-bottom:10px;">📅 GÜNÜN ÖZETİ</div>
+      <div id="gununOzeti" style="display:flex;flex-direction:column;gap:8px;"></div>
     </div>
   </div>
 
   <!-- SOL ALT: Veresiye Girişi -->
-  <div style="background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:14px;display:flex;flex-direction:column;min-height:0;">
-    <div style="font-family:Oswald,sans-serif;font-size:14px;font-weight:800;color:var(--red);letter-spacing:1px;margin-bottom:12px;flex-shrink:0;">💳 VERESİYE GİRİŞİ</div>
-    <div style="display:flex;flex-direction:column;gap:10px;max-width:340px;flex-shrink:0;">
-      <div>
+  <div style="background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:12px;display:flex;flex-direction:column;min-height:0;">
+    <div style="font-family:Oswald,sans-serif;font-size:13px;font-weight:800;color:var(--red);letter-spacing:1px;margin-bottom:8px;flex-shrink:0;">💳 VERESİYE GİRİŞİ</div>
+    <div style="display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;flex-shrink:0;">
+      <div style="flex:1;min-width:140px;">
         <div class="islem-field-label">Müşteri Seç</div>
-        <select class="islem-input" id="veresiyeCariSecim" style="width:100%;"></select>
+        <select class="islem-input" id="veresiyeCariSecim" style="width:100%;padding:6px 8px;"></select>
       </div>
-      <div>
+      <div style="flex:1;min-width:140px;">
         <div class="islem-field-label">Açıklama</div>
-        <input class="islem-input" id="veresiyeAciklama" placeholder="Açıklama yazın..." style="width:100%;">
+        <input class="islem-input" id="veresiyeAciklama" placeholder="Açıklama yazın..." style="width:100%;padding:6px 8px;">
       </div>
-      <div>
+      <div style="width:110px;">
         <div class="islem-field-label">Tutar (₺)</div>
-        <input class="islem-input" id="veresiyeTutar" type="number" placeholder="0.00" style="width:100%;" onkeydown="if(event.key==='Enter')veresiyeGirisiKaydet()">
+        <input class="islem-input" id="veresiyeTutar" type="number" placeholder="0.00" style="width:100%;padding:6px 8px;" onkeydown="if(event.key==='Enter')veresiyeGirisiKaydet()">
       </div>
-      <button class="btn-islem-kaydet" style="background:var(--red);" onclick="veresiyeGirisiKaydet()">KAYDET</button>
+      <button class="btn-islem-kaydet" style="background:var(--red);width:auto;padding:7px 18px;" onclick="veresiyeGirisiKaydet()">KAYDET</button>
     </div>
-    <div style="margin-top:14px;font-size:12px;color:var(--text-muted);font-weight:700;flex-shrink:0;">BUGÜNKÜ VERESİYE KAYITLARI</div>
-    <div id="veresiyeGunlukListe" style="margin-top:8px;overflow-y:auto;flex:1;min-height:0;display:flex;flex-direction:column-reverse;gap:6px;"></div>
+    <div style="margin-top:10px;font-size:11px;color:var(--text-muted);font-weight:700;flex-shrink:0;">BUGÜNKÜ VERESİYE KAYITLARI</div>
+    <div id="veresiyeGunlukListe" style="margin-top:6px;overflow-y:auto;flex:1;min-height:0;display:flex;flex-direction:column-reverse;gap:6px;"></div>
   </div>
 
   <!-- SAĞ ALT: Tahsilat Girişi -->
-  <div style="background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:14px;display:flex;flex-direction:column;min-height:0;">
-    <div style="font-family:Oswald,sans-serif;font-size:14px;font-weight:800;color:var(--green2);letter-spacing:1px;margin-bottom:12px;flex-shrink:0;">💵 TAHSİLAT GİRİŞİ</div>
-    <div style="display:flex;flex-direction:column;gap:10px;max-width:340px;flex-shrink:0;">
-      <div>
+  <div style="background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:12px;display:flex;flex-direction:column;min-height:0;">
+    <div style="font-family:Oswald,sans-serif;font-size:13px;font-weight:800;color:var(--green2);letter-spacing:1px;margin-bottom:8px;flex-shrink:0;">💵 TAHSİLAT GİRİŞİ</div>
+    <div style="display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;flex-shrink:0;">
+      <div style="flex:1;min-width:140px;">
         <div class="islem-field-label">Müşteri Seç</div>
-        <select class="islem-input" id="tahsilatCariSecim" style="width:100%;"></select>
+        <select class="islem-input" id="tahsilatCariSecim" style="width:100%;padding:6px 8px;"></select>
       </div>
-      <div>
+      <div style="flex:1;min-width:140px;">
         <div class="islem-field-label">Açıklama</div>
-        <input class="islem-input" id="tahsilatAciklama" placeholder="Açıklama yazın..." style="width:100%;">
+        <input class="islem-input" id="tahsilatAciklama" placeholder="Açıklama yazın..." style="width:100%;padding:6px 8px;">
       </div>
-      <div>
+      <div style="width:110px;">
         <div class="islem-field-label">Tutar (₺)</div>
-        <input class="islem-input" id="tahsilatTutar" type="number" placeholder="0.00" style="width:100%;" onkeydown="if(event.key==='Enter')tahsilatGirisiKaydet()">
+        <input class="islem-input" id="tahsilatTutar" type="number" placeholder="0.00" style="width:100%;padding:6px 8px;" onkeydown="if(event.key==='Enter')tahsilatGirisiKaydet()">
       </div>
-      <button class="btn-islem-kaydet" style="background:var(--green2);" onclick="tahsilatGirisiKaydet()">KAYDET</button>
+      <button class="btn-islem-kaydet" style="background:var(--green2);width:auto;padding:7px 18px;" onclick="tahsilatGirisiKaydet()">KAYDET</button>
     </div>
-    <div style="margin-top:14px;font-size:12px;color:var(--text-muted);font-weight:700;flex-shrink:0;">BUGÜNKÜ TAHSİLAT KAYITLARI</div>
-    <div id="tahsilatGunlukListe" style="margin-top:8px;overflow-y:auto;flex:1;min-height:0;display:flex;flex-direction:column-reverse;gap:6px;"></div>
+    <div style="margin-top:10px;font-size:11px;color:var(--text-muted);font-weight:700;flex-shrink:0;">BUGÜNKÜ TAHSİLAT KAYITLARI</div>
+    <div id="tahsilatGunlukListe" style="margin-top:6px;overflow-y:auto;flex:1;min-height:0;display:flex;flex-direction:column-reverse;gap:6px;"></div>
   </div>
 
 </div>
@@ -4552,11 +4552,13 @@ async function yakitStokYukle() {
     liste.appendChild(satir);
 
     const kart = document.createElement('div');
-    kart.style.cssText = 'background:rgba(0,0,0,0.25);border-radius:6px;padding:12px;text-align:center;border:1px solid ' + yt.renk + ';';
+    kart.style.cssText = 'background:rgba(0,0,0,0.25);border-radius:6px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;border-left:3px solid ' + yt.renk + ';';
     kart.innerHTML = `
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">${yt.ad}</div>
-      <div style="font-size:22px;font-weight:800;color:${yt.renk};">${Number(mevcut.litre || 0).toLocaleString('tr-TR')}</div>
-      <div style="font-size:11px;color:var(--text-muted);">Litre</div>
+      <div style="font-size:13px;color:var(--text-muted);font-weight:700;">${yt.ad}</div>
+      <div style="text-align:right;">
+        <span style="font-size:18px;font-weight:800;color:${yt.renk};">${Number(mevcut.litre || 0).toLocaleString('tr-TR')}</span>
+        <span style="font-size:11px;color:var(--text-muted);"> Litre</span>
+      </div>
     `;
     kartlar.appendChild(kart);
   });
@@ -4728,17 +4730,17 @@ async function gununOzetiYukle() {
   const islemSayisi = (hareketler || []).length;
 
   kutu.innerHTML = `
-    <div style="background:rgba(255,68,68,0.1);border-left:3px solid var(--red);padding:12px;border-radius:6px;">
-      <div style="font-size:12px;color:var(--text-muted);">Bugünkü Toplam Borç</div>
-      <div style="font-size:22px;font-weight:800;color:var(--red);">${fmt(toplamBorc)} ₺</div>
+    <div style="background:rgba(255,68,68,0.1);border-left:3px solid var(--red);padding:8px 12px;border-radius:6px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:11px;color:var(--text-muted);">Toplam Borç</div>
+      <div style="font-size:16px;font-weight:800;color:var(--red);">${fmt(toplamBorc)} ₺</div>
     </div>
-    <div style="background:rgba(102,187,106,0.1);border-left:3px solid var(--green2);padding:12px;border-radius:6px;">
-      <div style="font-size:12px;color:var(--text-muted);">Bugünkü Toplam Tahsilat</div>
-      <div style="font-size:22px;font-weight:800;color:var(--green2);">${fmt(toplamTahsilat)} ₺</div>
+    <div style="background:rgba(102,187,106,0.1);border-left:3px solid var(--green2);padding:8px 12px;border-radius:6px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:11px;color:var(--text-muted);">Toplam Tahsilat</div>
+      <div style="font-size:16px;font-weight:800;color:var(--green2);">${fmt(toplamTahsilat)} ₺</div>
     </div>
-    <div style="background:rgba(66,165,245,0.1);border-left:3px solid var(--blue-bright);padding:12px;border-radius:6px;">
-      <div style="font-size:12px;color:var(--text-muted);">Bugünkü İşlem Sayısı</div>
-      <div style="font-size:22px;font-weight:800;color:var(--blue-bright);">${islemSayisi}</div>
+    <div style="background:rgba(66,165,245,0.1);border-left:3px solid var(--blue-bright);padding:8px 12px;border-radius:6px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:11px;color:var(--text-muted);">İşlem Sayısı</div>
+      <div style="font-size:16px;font-weight:800;color:var(--blue-bright);">${islemSayisi}</div>
     </div>
   `;
 }
