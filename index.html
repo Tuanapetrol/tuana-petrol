@@ -2118,7 +2118,7 @@ function raporKapat(){document.getElementById('raporOverlay').classList.remove('
 // F4 YEDEKLEME VE GERİ YÜKLEME PANELİ
 // ═══════════════════════════════════════════════════════
 function yedekEkraniAc() {
-  const sonYedek = localStorage.getItem('mmk_son_yedek');
+  const sonYedek = localStorage.getItem('tuana_petrol_son_yedek');
   let sonYedekHtml = '';
   if (sonYedek) {
     const d = new Date(sonYedek);
@@ -2180,11 +2180,11 @@ async function veritabaniYedekAl() {
     // 1) JSON yedeği ekle
     const yedekData = {
       olusturmaTarihi: new Date().toLocaleString('tr-TR'),
-      program: 'MMK Veresiye Web',
+      program: 'Tuana Petrol Veresiye',
       cariler: cariler,
       hareketler: tumHareketler
     };
-    zip.file(`mmk_veresiye_yedek_${tarihStr}.json`, JSON.stringify(yedekData, null, 2));
+    zip.file(`tuana_petrol_yedek_${tarihStr}.json`, JSON.stringify(yedekData, null, 2));
 
     // 2) Her cari için ayrı HTML ekstre oluştur
     const klasor = zip.folder('Cari_Ekstreleri');
@@ -2261,7 +2261,7 @@ tfoot td{padding:8px 10px;font-weight:700;font-size:12px}
     <td style="text-align:right">${sonBakiye.toLocaleString('tr-TR',{minimumFractionDigits:2})} ₺</td>
   </tr></tfoot>
 </table>
-<div class="ft">MMK Veresiye Web Programı — ${bugun} tarihinde oluşturulmuştur. Yazdırmak için Ctrl+P kullanın.</div>
+<div class="ft">Tuana Petrol Veresiye Programı — ${bugun} tarihinde oluşturulmuştur. Yazdırmak için Ctrl+P kullanın.</div>
 </body></html>`;
 
       const temizAd = cari.unvan.replace(/[\/\\:*?"<>|]/g,'').trim();
@@ -2366,12 +2366,12 @@ async function driveYukle(zipBlob, dosyaAdi) {
   // Token yoksa veya süresi dolmuşsa yenile
   if (!driveAccessToken) await driveTokenAl();
 
-  // MMK_Veresiye_Yedekler klasörünü bul veya oluştur
+  // Tuana_Petrol_Yedekler klasörünü bul veya oluştur
   let klasorId = localStorage.getItem('drive_klasor_id');
   if (!klasorId) {
     // Klasör ara
     const araResp = await fetch(
-      `https://www.googleapis.com/drive/v3/files?q=name%3D'MMK_Veresiye_Yedekler'+and+mimeType%3D'application%2Fvnd.google-apps.folder'+and+trashed%3Dfalse&fields=files(id,name)`,
+      `https://www.googleapis.com/drive/v3/files?q=name%3D'Tuana_Petrol_Yedekler'+and+mimeType%3D'application%2Fvnd.google-apps.folder'+and+trashed%3Dfalse&fields=files(id,name)`,
       { headers: { Authorization: 'Bearer ' + driveAccessToken } }
     );
     const araData = await araResp.json();
@@ -2382,7 +2382,7 @@ async function driveYukle(zipBlob, dosyaAdi) {
       const olusturResp = await fetch('https://www.googleapis.com/drive/v3/files', {
         method: 'POST',
         headers: { Authorization: 'Bearer ' + driveAccessToken, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: 'MMK_Veresiye_Yedekler', mimeType: 'application/vnd.google-apps.folder' })
+        body: JSON.stringify({ name: 'Tuana_Petrol_Yedekler', mimeType: 'application/vnd.google-apps.folder' })
       });
       const olusturData = await olusturResp.json();
       klasorId = olusturData.id;
@@ -2416,15 +2416,15 @@ async function driveYedekAl(otomatik = false) {
     loading(true, '☁️ Google Drive\'a yükleniyor...');
     const d = new Date();
     const tarihStr = `${d.getDate()}_${d.getMonth()+1}_${d.getFullYear()}`;
-    const dosyaAdi = `MMK_Yedek_${tarihStr}.zip`;
+    const dosyaAdi = `Tuana_Petrol_Yedek_${tarihStr}.zip`;
 
     await driveYukle(zipBlob, dosyaAdi);
 
     // Son yedek tarihini kaydet
-    localStorage.setItem('mmk_son_yedek', new Date().toISOString());
+    localStorage.setItem('tuana_petrol_son_yedek', new Date().toISOString());
     localStorage.setItem('drive_klasor_id', localStorage.getItem('drive_klasor_id')); // koru
 
-    toast('✓ Yedek Google Drive\'a yüklendi! (MMK_Veresiye_Yedekler klasörü)');
+    toast('✓ Yedek Google Drive\'a yüklendi! (Tuana_Petrol_Yedekler klasörü)');
     yedekEkraniGuncelle();
   } catch(err) {
     if (err === 'access_denied') { toast('Drive erişimi reddedildi.', true); }
@@ -2454,9 +2454,9 @@ async function zipOlustur() {
     const zip = new JSZip();
 
     // JSON yedek
-    zip.file(`mmk_veresiye_yedek_${tarihStr}.json`, JSON.stringify({
+    zip.file(`tuana_petrol_yedek_${tarihStr}.json`, JSON.stringify({
       olusturmaTarihi: new Date().toLocaleString('tr-TR'),
-      program: 'MMK Veresiye Web',
+      program: 'Tuana Petrol Veresiye',
       cariler, hareketler: tumHareketler
     }, null, 2));
 
@@ -2488,7 +2488,7 @@ async function zipOlustur() {
 <table><thead><tr><th>TARİH/SAAT</th><th>AÇIKLAMA</th><th style="text-align:right">BORÇ</th><th style="text-align:right">TAHSİLAT</th><th style="text-align:right">BAKİYE</th></tr></thead>
 <tbody>${satirlar||'<tr><td colspan="5" style="text-align:center;color:#bdc3c7;padding:16px">Hareket kaydı yok</td></tr>'}</tbody>
 <tfoot><tr><td colspan="2">TOPLAM</td><td style="text-align:right">${topBorc.toLocaleString('tr-TR',{minimumFractionDigits:2})} ₺</td><td style="text-align:right">${topTah.toLocaleString('tr-TR',{minimumFractionDigits:2})} ₺</td><td style="text-align:right">${sonBakiye.toLocaleString('tr-TR',{minimumFractionDigits:2})} ₺</td></tr></tfoot></table>
-<div class="ft">MMK Veresiye Web Programı — ${bugun} tarihinde oluşturulmuştur. Yazdırmak için Ctrl+P kullanın.</div></body></html>`;
+<div class="ft">Tuana Petrol Veresiye Programı — ${bugun} tarihinde oluşturulmuştur. Yazdırmak için Ctrl+P kullanın.</div></body></html>`;
       const temizAd = cari.unvan.replace(/[\/\\:*?"<>|]/g,'').trim();
       klasor.file(`${String(cari.kod).padStart(3,'0')}_${temizAd}.html`, html);
     }
@@ -2508,7 +2508,7 @@ async function zipOlustur() {
 
 // ── Otomatik yedek kontrolü (her giriş) ──
 function otomatikYedekKontrol() {
-  const sonYedek = localStorage.getItem('mmk_son_yedek');
+  const sonYedek = localStorage.getItem('tuana_petrol_son_yedek');
   if (!sonYedek) return;
 
   const fark = Date.now() - new Date(sonYedek).getTime();
@@ -2540,7 +2540,7 @@ function otomatikYedekKontrol() {
 
 // ── Yedek ekranını son yedek tarihi ile güncelle ──
 function yedekEkraniGuncelle() {
-  const sonYedek = localStorage.getItem('mmk_son_yedek');
+  const sonYedek = localStorage.getItem('tuana_petrol_son_yedek');
   const el = document.getElementById('sonYedekBilgi');
   if (!el) return;
   if (sonYedek) {
@@ -2660,7 +2660,7 @@ function menuAraclar(){
   else if(s==='2')yedekEkraniAc();
   else if(s==='3'){const y=prompt('Yeni şifre:');if(y&&y.trim()){setSifre(y.trim()).then(()=>toast('Şifre güncellendi!'));}}
 }
-function hakkinda(){alert('MMK Veresiye Kısayolları:\n\nF3 — Tarih Seçimli Günlük Rapor\nF4 — Yedekleme & Geri Yükleme Paneli\nF5 — Borç Girişi (Detayda)\nF6 — Tahsilat Girişi (Detayda)\nESC — Kapat / Gizle\nENTER — Kaydet / Geçiş\nOk Tuşları ↑↓ — Listede gezinme');}
+function hakkinda(){alert('Tuana Petrol Veresiye Kısayolları:\n\nF3 — Tarih Seçimli Günlük Rapor\nF4 — Yedekleme & Geri Yükleme Paneli\nF5 — Borç Girişi (Detayda)\nF6 — Tahsilat Girişi (Detayda)\nESC — Kapat / Gizle\nENTER — Kaydet / Geçiş\nOk Tuşları ↑↓ — Listede gezinme');}
 
 // ── GLOBAL KLAVYE VE OK TUŞLARI YÖNETİMİ ──
 function globalKeyDown(e){
@@ -3038,7 +3038,7 @@ async function hareketDuzenleKaydet() {
   loading(false);
 }
 // ═══════════════════════════════════════════════════════
-const DUKKAN_ADI = 'Gölbaşı Market';
+const DUKKAN_ADI = 'Tuana Petrol';
 const DUKKAN_TEL = ''; // İstersen buraya telefon ekle
 const DUKKAN_ADRES = ''; // İstersen buraya adres ekle
 
@@ -4485,8 +4485,8 @@ async function toptanciOdemeKaydet() {
 // YÖNETİM SEKMESİ — Yakıt Stok + Veresiye/Tahsilat Girişi + Gün Özeti
 // ═══════════════════════════════════════════════════════
 const YAKIT_TURLERI = [
-  { kod: 'benzin', ad: 'Benzin', renk: '#42a5f5' },
   { kod: 'mazot', ad: 'Mazot', renk: '#66bb6a' },
+  { kod: 'benzin', ad: 'Benzin', renk: '#42a5f5' },
   { kod: 'lpg', ad: 'LPG', renk: '#ffa726' }
 ];
 
@@ -4540,12 +4540,12 @@ async function yakitStokYukle() {
     satir.innerHTML = `
       <div style="width:70px;font-weight:700;color:${yt.renk};">${yt.ad}</div>
       <div style="flex:1;">
-        <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px;">Litre</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px;">Mevcut Stok (Litre)</div>
         <input type="number" class="islem-input" id="stokLitre_${yt.kod}" value="${mevcut.litre || 0}" style="width:100%;padding:6px 8px;">
       </div>
       <div style="flex:1;">
-        <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px;">Litre Fiyatı (₺)</div>
-        <input type="number" class="islem-input" id="stokFiyat_${yt.kod}" value="${mevcut.fiyat || 0}" style="width:100%;padding:6px 8px;">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px;">Satılan Litre</div>
+        <input type="number" class="islem-input" id="stokSatis_${yt.kod}" value="0" placeholder="0" style="width:100%;padding:6px 8px;">
       </div>
       <button class="btn" style="background:${yt.renk};color:#fff;align-self:flex-end;padding:7px 12px;" onclick="yakitStokKaydet('${yt.kod}')">KAYDET</button>
     `;
@@ -4565,11 +4565,12 @@ async function yakitStokYukle() {
 }
 
 async function yakitStokKaydet(tur) {
-  const litre = parseFloat(document.getElementById('stokLitre_' + tur).value) || 0;
-  const fiyat = parseFloat(document.getElementById('stokFiyat_' + tur).value) || 0;
+  const mevcutLitre = parseFloat(document.getElementById('stokLitre_' + tur).value) || 0;
+  const satisLitre = parseFloat(document.getElementById('stokSatis_' + tur).value) || 0;
+  const yeniLitre = mevcutLitre - satisLitre;
   try {
-    await sbUpsert('yakit_stok', { tur, litre, fiyat }, 'tur');
-    toast('✓ Stok güncellendi');
+    await sbUpsert('yakit_stok', { tur, litre: yeniLitre }, 'tur');
+    toast(satisLitre > 0 ? `✓ ${satisLitre} litre düşüldü` : '✓ Stok güncellendi');
     await yakitStokYukle();
   } catch (e) {
     toast('Hata: ' + e.message, true);
