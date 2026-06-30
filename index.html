@@ -1510,8 +1510,11 @@ async function sbDelete(tablo, params) {
   const r = await fetch(`${SUPA_URL}/rest/v1/${tablo}?${params}`, { method:'DELETE', headers:HEADERS });
   if (!r.ok) throw new Error(await r.text());
 }
-async function sbUpsert(tablo, data) {
-  const r = await fetch(`${SUPA_URL}/rest/v1/${tablo}`, {
+async function sbUpsert(tablo, data, conflictCol) {
+  const url = conflictCol
+    ? `${SUPA_URL}/rest/v1/${tablo}?on_conflict=${conflictCol}`
+    : `${SUPA_URL}/rest/v1/${tablo}`;
+  const r = await fetch(url, {
     method:'POST', headers:{...HEADERS,'Prefer':'resolution=merge-duplicates,return=representation'}, body:JSON.stringify(data)
   });
   if (!r.ok) throw new Error(await r.text());
@@ -1532,7 +1535,7 @@ async function getSifre() {
 
 async function setSifre(s) {
   try {
-    await sbUpsert('ayarlar', { anahtar: 'sifre', deger: s });
+    await sbUpsert('ayarlar', { anahtar: 'sifre', deger: s }, 'anahtar');
   } catch(e) {}
   // Her iki yere de kaydet
   localStorage.setItem('tp_sifre', s);
@@ -4563,7 +4566,7 @@ async function yakitStokKaydet(tur) {
   const litre = parseFloat(document.getElementById('stokLitre_' + tur).value) || 0;
   const fiyat = parseFloat(document.getElementById('stokFiyat_' + tur).value) || 0;
   try {
-    await sbUpsert('yakit_stok', { tur, litre, fiyat });
+    await sbUpsert('yakit_stok', { tur, litre, fiyat }, 'tur');
     toast('✓ Stok güncellendi');
     await yakitStokYukle();
   } catch (e) {
@@ -4600,7 +4603,7 @@ async function veresiyeGirisiKaydet() {
     const cari = cariListesi.find(c => c.kod === kod);
     if (cari) {
       const yeniBakiye = Number(cari.bakiye || 0) + tutar;
-      await sbUpsert('cariler', { kod, unvan: cari.unvan, bakiye: yeniBakiye });
+      await sbUpsert('cariler', { kod, unvan: cari.unvan, bakiye: yeniBakiye }, 'kod');
     }
 
     document.getElementById('veresiyeAciklama').value = '';
@@ -4647,7 +4650,7 @@ async function tahsilatGirisiKaydet() {
     const cari = cariListesi.find(c => c.kod === kod);
     if (cari) {
       const yeniBakiye = Number(cari.bakiye || 0) - tutar;
-      await sbUpsert('cariler', { kod, unvan: cari.unvan, bakiye: yeniBakiye });
+      await sbUpsert('cariler', { kod, unvan: cari.unvan, bakiye: yeniBakiye }, 'kod');
     }
 
     document.getElementById('tahsilatAciklama').value = '';
