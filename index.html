@@ -1482,7 +1482,13 @@ table.detay-table tbody td { padding:9px 12px; border-right:1px solid rgba(30,58
       <span class="rapor-title">⛽ YAKIT SATIŞ KAYITLARI</span>
       <button class="detay-close" onclick="satisKayitlariKapat()">✕</button>
     </div>
-    <div class="rapor-body" id="satisKayitlariBody" style="padding:16px;max-height:70vh;overflow-y:auto;"></div>
+    <div style="padding:12px 16px 0 16px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:12px;color:var(--text-muted);font-weight:700;">TARİH SEÇ</span>
+      <input type="date" id="satisKayitlariTarih" class="islem-input" style="width:170px;padding:6px 8px;" onchange="satisKayitlariYukle()">
+      <button class="btn" style="background:var(--panel2);color:var(--blue-bright);border:1px solid var(--border2);font-size:12px;padding:6px 12px;" onclick="satisKayitlariBugun()">BUGÜN</button>
+      <button class="btn" style="background:var(--panel2);color:var(--text);border:1px solid var(--border2);font-size:12px;padding:6px 12px;" onclick="satisKayitlariTumu()">TÜMÜ</button>
+    </div>
+    <div class="rapor-body" id="satisKayitlariBody" style="padding:16px;max-height:65vh;overflow-y:auto;"></div>
   </div>
 </div>
 
@@ -4612,6 +4618,11 @@ async function yakitStokKaydet(tur) {
 // ---------- SATIŞ KAYITLARI PENCERESİ ----------
 async function satisKayitlariAc() {
   document.getElementById('satisKayitlariOverlay').classList.add('active');
+  const tarihInput = document.getElementById('satisKayitlariTarih');
+  if (tarihInput && !tarihInput.value) {
+    const bugun = new Date();
+    tarihInput.value = bugun.toISOString().slice(0, 10);
+  }
   await satisKayitlariYukle();
 }
 
@@ -4619,26 +4630,63 @@ function satisKayitlariKapat() {
   document.getElementById('satisKayitlariOverlay').classList.remove('active');
 }
 
+function satisKayitlariBugun() {
+  const tarihInput = document.getElementById('satisKayitlariTarih');
+  const bugun = new Date();
+  tarihInput.value = bugun.toISOString().slice(0, 10);
+  satisKayitlariYukle();
+}
+
+function satisKayitlariTumu() {
+  const tarihInput = document.getElementById('satisKayitlariTarih');
+  tarihInput.value = '';
+  satisKayitlariYukle();
+}
+
 async function satisKayitlariYukle() {
   const body = document.getElementById('satisKayitlariBody');
+  const tarihInput = document.getElementById('satisKayitlariTarih');
   if (!body) return;
   body.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px;">Yükleniyor...</div>';
 
+  const seciliTarih = tarihInput ? tarihInput.value : '';
+
+  let queryParams = 'select=*&order=tarih.desc&limit=500';
+  if (seciliTarih) {
+    const gunBasi = new Date(seciliTarih + 'T00:00:00');
+    const gunSonu = new Date(seciliTarih + 'T00:00:00');
+    gunSonu.setDate(gunSonu.getDate() + 1);
+    queryParams = `select=*&tarih=gte.${gunBasi.toISOString()}&tarih=lt.${gunSonu.toISOString()}&order=tarih.desc`;
+  }
+
   let kayitlar = [];
   try {
-    kayitlar = await sbGet('yakit_satislar', 'select=*&order=tarih.desc&limit=200');
+    kayitlar = await sbGet('yakit_satislar', queryParams);
   } catch (e) {
     kayitlar = [];
   }
 
   if (!kayitlar || kayitlar.length === 0) {
-    body.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px;">Henüz satış kaydı yok.</div>';
+    body.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px;">Seçili tarihte satış kaydı yok.</div>';
     return;
   }
 
   const renkMap = { mazot: '#66bb6a', benzin: '#42a5f5', lpg: '#ffa726' };
 
-  body.innerHTML = kayitlar.map(k => {
+  // Tür bazlı gün toplamı
+  const toplamlar = {};
+  kayitlar.forEach(k => { toplamlar[k.tur] = (toplamlar[k.tur] || 0) + Number(k.litre); });
+  const toplamHtml = Object.keys(toplamlar).map(tur => {
+    const renk = renkMap[tur] || 'var(--blue-bright)';
+    const ad = (kayitlar.find(k => k.tur === tur) || {}).tur_adi || tur;
+    return `<span style="color:${renk};font-weight:700;margin-right:14px;">${ad}: ${toplamlar[tur].toLocaleString('tr-TR')} L</span>`;
+  }).join('');
+
+  body.innerHTML = `
+    <div style="background:rgba(0,0,0,0.25);padding:10px 14px;border-radius:6px;margin-bottom:12px;font-size:13px;">
+      ${toplamHtml}
+    </div>
+  ` + kayitlar.map(k => {
     const renk = renkMap[k.tur] || 'var(--blue-bright)';
     const tarihStr = k.tarih ? new Date(k.tarih).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
     return `
