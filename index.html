@@ -4541,11 +4541,11 @@ async function yakitStokYukle() {
       <div style="width:70px;font-weight:700;color:${yt.renk};">${yt.ad}</div>
       <div style="flex:1;">
         <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px;">Mevcut Stok (Litre)</div>
-        <input type="number" class="islem-input" id="stokLitre_${yt.kod}" value="${mevcut.litre || 0}" style="width:100%;padding:6px 8px;">
+        <input type="number" class="islem-input" id="stokLitre_${yt.kod}" value="${mevcut.litre || 0}" style="width:100%;padding:6px 8px;" onfocus="this.select()">
       </div>
       <div style="flex:1;">
         <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px;">Satılan Litre</div>
-        <input type="number" class="islem-input" id="stokSatis_${yt.kod}" value="0" placeholder="0" style="width:100%;padding:6px 8px;">
+        <input type="number" class="islem-input" id="stokSatis_${yt.kod}" value="0" placeholder="0" style="width:100%;padding:6px 8px;" onfocus="this.select()">
       </div>
       <button class="btn" style="background:${yt.renk};color:#fff;align-self:flex-end;padding:7px 12px;" onclick="yakitStokKaydet('${yt.kod}')">KAYDET</button>
     `;
