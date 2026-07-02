@@ -804,13 +804,13 @@ table.detay-table tbody td { padding:9px 12px; border-right:1px solid rgba(30,58
 
 <div class="app-body" id="cariPane">
   <div class="left-pane">
-    <div class="toolbar" style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
+    <div class="toolbar">
       <span class="toolbar-label">Cari Ünvan</span>
       <input class="tb-input" id="txtCariKod" placeholder="Kod" readonly>
       
-      <div style="display: flex; gap: 4px; align-items: center;">
-        <input class="tb-input" id="txtCariUnvan" placeholder="Müşteri Ünvanı" onkeydown="if(event.key==='Enter') { cariEkle(); event.preventDefault(); }">
-        <button type="button" class="btn" style="background: var(--green); color: #fff; padding: 6px 12px; white-space: nowrap;" onclick="cariEkle()">EKLE</button>
+      <div style="display: inline-flex; gap: 4px; align-items: center; vertical-align: middle;">
+        <input class="tb-input" id="txtCariUnvan" placeholder="Müşteri Ünvanı" onkeydown="if(event.key==='Enter'){ cariEkle(); event.preventDefault(); }">
+        <button type="button" class="btn" style="background: var(--green); color: #fff; padding: 6px 12px; height: 30px; line-height: 1;" onclick="cariEkle()">EKLE</button>
       </div>
 
       <span class="toolbar-label" style="margin-left:8px">Müşteri Ara</span>
