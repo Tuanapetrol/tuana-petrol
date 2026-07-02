@@ -5105,7 +5105,7 @@ function excelDosyaOku(file) {
         };
       }).filter(r => {
         const tarihVar = !!r.tarihISO || /\d{1,4}[./-]\d{1,2}[./-]\d{1,4}/.test(r.tarihStr || '');
-        return tarihVar && (r.borc > 0 || r.tahsilat > 0);
+        return tarihVar;
       });
 
       if (!satirlar.length) {
@@ -5162,21 +5162,33 @@ async function excelVerisiniYukle() {
   btn.disabled = true;
 
   let basarili = 0, hatali = 0;
+  const yuklenecekler = excelVerisi
+    .filter(r => !!r.tarihISO)
+    .map(r => ({
+      cari_kod: aktifDetayKod,
+      tarih: r.tarihISO,
+      aciklama: r.aciklama || 'Excel aktarım',
+      borc: r.borc || 0,
+      tahsilat: r.tahsilat || 0
+    }));
 
-  for (const r of excelVerisi) {
+  hatali += excelVerisi.length - yuklenecekler.length;
+
+  const parcaBoyutu = 200;
+  for (let i = 0; i < yuklenecekler.length; i += parcaBoyutu) {
+    const parca = yuklenecekler.slice(i, i + parcaBoyutu);
     try {
-      if (!r.tarihISO) throw new Error('Geçersiz tarih');
-
-      await sbPost('hareketler', {
-        cari_kod: aktifDetayKod,
-        tarih: r.tarihISO,
-        aciklama: r.aciklama || 'Excel aktarım',
-        borc: r.borc || 0,
-        tahsilat: r.tahsilat || 0
-      });
-      basarili++;
+      await sbPost('hareketler', parca);
+      basarili += parca.length;
     } catch (e) {
-      hatali++;
+      for (const kayit of parca) {
+        try {
+          await sbPost('hareketler', kayit);
+          basarili++;
+        } catch (tekilHata) {
+          hatali++;
+        }
+      }
     }
   }
 
