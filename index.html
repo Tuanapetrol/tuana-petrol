@@ -411,6 +411,7 @@ table.detay-table tbody td { padding:9px 12px; border-right:1px solid rgba(30,58
 .btn-islem-kaydet { width:100%; padding:9px; border:none; border-radius:4px; font-family:'Oswald',sans-serif; font-size:14px; font-weight:700; letter-spacing:1px; cursor:pointer; text-transform:uppercase; margin-top:4px; }
 .borc-mode .btn-islem-kaydet { background:var(--red2); color:#fff; }
 .tahsilat-mode .btn-islem-kaydet { background:var(--green); color:#fff; }
+.tahsilat-mode .yakit-secim-row { display:none; }
 .islem-panel-kapat-btn { background:none; border:none; color:var(--text-muted); font-weight:bold; cursor:pointer; font-size:12px; }
 .islem-panel-kapat-btn:hover { color:#fff; }
 
@@ -987,6 +988,19 @@ table.detay-table tbody td { padding:9px 12px; border-right:1px solid rgba(30,58
         <div class="islem-field-label">Müşteri Seç</div>
         <select class="islem-input" id="veresiyeCariSecim" style="width:100%;padding:6px 8px;"></select>
       </div>
+      <div style="width:100px;">
+        <div class="islem-field-label">Yakıt</div>
+        <select class="islem-input" id="veresiyeYakitSecim" style="width:100%;padding:6px 8px;" onchange="veresiyeYakitDegisti()">
+          <option value="">— Yok —</option>
+          <option value="mazot">Mazot</option>
+          <option value="benzin">Benzin</option>
+          <option value="lpg">LPG</option>
+        </select>
+      </div>
+      <div style="width:80px;">
+        <div class="islem-field-label">Litre</div>
+        <input class="islem-input" id="veresiyeLitre" type="number" placeholder="0" style="width:100%;padding:6px 8px;" oninput="veresiyeYakitDegisti()">
+      </div>
       <div style="flex:1;min-width:140px;">
         <div class="islem-field-label">Açıklama</div>
         <input class="islem-input" id="veresiyeAciklama" placeholder="Açıklama yazın..." style="width:100%;padding:6px 8px;">
@@ -1068,6 +1082,21 @@ table.detay-table tbody td { padding:9px 12px; border-right:1px solid rgba(30,58
               <button class="islem-panel-kapat-btn" onclick="islemPanelKapat()">[Gizle]</button>
             </div>
             <div class="islem-panel-body">
+              <div class="yakit-secim-row" style="display:flex;gap:8px;">
+                <div style="flex:1;">
+                  <div class="islem-field-label">Yakıt</div>
+                  <select class="islem-input" id="islemYakitSecim" style="width:100%;padding:6px 8px;" onchange="islemYakitDegisti()">
+                    <option value="">— Yok —</option>
+                    <option value="mazot">Mazot</option>
+                    <option value="benzin">Benzin</option>
+                    <option value="lpg">LPG</option>
+                  </select>
+                </div>
+                <div style="width:90px;">
+                  <div class="islem-field-label">Litre</div>
+                  <input class="islem-input" id="islemLitre" type="number" placeholder="0" style="width:100%;padding:6px 8px;" oninput="islemYakitDegisti()">
+                </div>
+              </div>
               <div>
                 <div class="islem-field-label">Açıklama</div>
                 <input class="islem-input" id="txtIslemAciklama" placeholder="Açıklama yazın..." autocomplete="off" onkeydown="islemKeyDown(event,'aciklama')">
@@ -1655,6 +1684,7 @@ async function init() {
     genelBakiyeHesapla();
     await cariDashboardGuncelle();
     otomatikKodVer();
+    yakitFiyatlariniYukle();
   } catch(e) {
     toast('Veritabanı bağlantı hatası: ' + e.message, true);
   }
@@ -2024,6 +2054,8 @@ function borcPanelAc(){
   document.getElementById('islemPanelTitle').textContent='BORÇ GİRİŞ PANELİ';
   document.getElementById('txtIslemAciklama').value='';
   document.getElementById('txtIslemTutar').value='';
+  const yakitSel=document.getElementById('islemYakitSecim'); if(yakitSel) yakitSel.value='';
+  const litreInp=document.getElementById('islemLitre'); if(litreInp) litreInp.value='';
   document.getElementById('txtIslemAciklama').focus();
 }
 function tahsilatPanelAc(){
@@ -2032,6 +2064,8 @@ function tahsilatPanelAc(){
   document.getElementById('islemPanelTitle').textContent='TAHSİLAT GİRİŞ PANELİ';
   document.getElementById('txtIslemAciklama').value='';
   document.getElementById('txtIslemTutar').value='';
+  const yakitSel=document.getElementById('islemYakitSecim'); if(yakitSel) yakitSel.value='';
+  const litreInp=document.getElementById('islemLitre'); if(litreInp) litreInp.value='';
   document.getElementById('txtIslemAciklama').focus();
 }
 function islemPanelKapat(){document.getElementById('islemPanel').classList.remove('active');}
@@ -4556,6 +4590,7 @@ const YAKIT_TURLERI = [
   { kod: 'benzin', ad: 'Benzin', renk: '#42a5f5' },
   { kod: 'lpg', ad: 'LPG', renk: '#ffa726' }
 ];
+let yakitFiyatCache = { mazot: 0, benzin: 0, lpg: 0 };
 
 function bugunBasiISO() {
   const d = new Date();
@@ -4601,6 +4636,7 @@ async function yakitStokYukle() {
 
   YAKIT_TURLERI.forEach(yt => {
     const mevcut = veriler.find(v => v.tur === yt.kod) || { litre: 0, fiyat: 0 };
+    yakitFiyatCache[yt.kod] = Number(mevcut.fiyat) || 0;
 
     const satir = document.createElement('div');
     satir.style.cssText = 'display:flex;align-items:center;gap:8px;background:rgba(0,0,0,0.2);padding:10px;border-radius:6px;border-left:3px solid ' + yt.renk + ';';
@@ -4609,6 +4645,10 @@ async function yakitStokYukle() {
       <div style="flex:1;">
         <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px;">Mevcut Stok (Litre)</div>
         <input type="number" class="islem-input" id="stokLitre_${yt.kod}" value="${mevcut.litre || 0}" style="width:100%;padding:6px 8px;" onfocus="this.select()">
+      </div>
+      <div style="flex:1;">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px;">Litre Fiyatı (₺)</div>
+        <input type="number" step="0.01" class="islem-input" id="stokFiyat_${yt.kod}" value="${mevcut.fiyat || 0}" style="width:100%;padding:6px 8px;" onfocus="this.select()" onkeydown="if(event.key==='Enter')yakitStokKaydet('${yt.kod}')">
       </div>
       <div style="flex:1;">
         <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px;">Satılan Litre</div>
@@ -4634,9 +4674,12 @@ async function yakitStokYukle() {
 async function yakitStokKaydet(tur) {
   const mevcutLitre = parseFloat(document.getElementById('stokLitre_' + tur).value) || 0;
   const satisLitre = parseFloat(document.getElementById('stokSatis_' + tur).value) || 0;
+  const yeniFiyat = parseFloat(document.getElementById('stokFiyat_' + tur).value) || 0;
+  const eskiFiyat = yakitFiyatCache[tur] || 0;
   const yeniLitre = mevcutLitre - satisLitre;
   try {
-    await sbUpsert('yakit_stok', { tur, litre: yeniLitre }, 'tur');
+    await sbUpsert('yakit_stok', { tur, litre: yeniLitre, fiyat: yeniFiyat }, 'tur');
+    yakitFiyatCache[tur] = yeniFiyat;
 
     if (satisLitre > 0) {
       const ytInfo = YAKIT_TURLERI.find(y => y.kod === tur);
@@ -4649,11 +4692,106 @@ async function yakitStokKaydet(tur) {
     }
 
     document.getElementById('stokSatis_' + tur).value = '0';
-    toast(satisLitre > 0 ? `✓ ${satisLitre} litre düşüldü` : '✓ Stok güncellendi');
+    toast(satisLitre > 0 ? `✓ ${satisLitre} litre düşüldü` : '✓ Stok/fiyat güncellendi');
     await yakitStokYukle();
+
+    // Fiyat değiştiyse, bu yakıtla kaydedilmiş mevcut veresiye borçlarını güncellemeyi teklif et
+    if (yeniFiyat > 0 && Math.abs(yeniFiyat - eskiFiyat) > 0.0001) {
+      const ytInfo = YAKIT_TURLERI.find(y => y.kod === tur);
+      const onay = confirm(
+        `${ytInfo.ad} litre fiyatı ${fmt(eskiFiyat)} ₺ → ${fmt(yeniFiyat)} ₺ olarak değişti.\n\n` +
+        `Açıklaması "${ytInfo.ad} <litre> LT" şeklinde olan mevcut veresiye kayıtlarının borç tutarları yeni fiyatla yeniden hesaplansın mı?`
+      );
+      if (onay) await yakitFiyatiUygulaVeresiyelere(tur, yeniFiyat);
+    }
   } catch (e) {
     toast('Hata: ' + e.message, true);
   }
+}
+
+// Bir yakıt türünün fiyatı değiştiğinde, aciklaması "<Yakıt Adı> <litre> LT" formatına uyan
+// tüm veresiye kayıtlarının borç tutarını yeni fiyat × litre olarak yeniden hesaplar ve
+// ilgili müşterilerin bakiyelerini günceller.
+async function yakitFiyatiUygulaVeresiyelere(tur, yeniFiyat) {
+  const yt = YAKIT_TURLERI.find(y => y.kod === tur);
+  if (!yt) return;
+
+  loading(true, 'Veresiye kayıtları güncelleniyor...');
+  try {
+    const desen = new RegExp('^\\s*' + yt.ad + '\\s+([\\d]+(?:[.,]\\d+)?)\\s*LT', 'i');
+    const tumHareketler = await sbGet('hareketler', 'select=id,cari_kod,aciklama,borc');
+
+    const bakiyeDeltalari = {};
+    let guncellenen = 0;
+
+    for (const h of (tumHareketler || [])) {
+      const m = (h.aciklama || '').match(desen);
+      if (!m) continue;
+      const litre = parseFloat(m[1].replace(',', '.'));
+      if (!litre || litre <= 0) continue;
+
+      const yeniBorc = Math.round(litre * yeniFiyat * 100) / 100;
+      const eskiBorc = Number(h.borc) || 0;
+      if (Math.abs(yeniBorc - eskiBorc) < 0.005) continue; // zaten güncel
+
+      await sbPatch('hareketler', `id=eq.${h.id}`, { borc: yeniBorc });
+      bakiyeDeltalari[h.cari_kod] = (bakiyeDeltalari[h.cari_kod] || 0) + (yeniBorc - eskiBorc);
+      guncellenen++;
+    }
+
+    // Etkilenen müşterilerin bakiyelerini güncelle
+    for (const kod of Object.keys(bakiyeDeltalari)) {
+      const cari = cariListesi.find(c => String(c.kod) === String(kod));
+      if (cari) {
+        const yeniBakiye = Number(cari.bakiye || 0) + bakiyeDeltalari[kod];
+        await sbUpsert('cariler', { kod: cari.kod, unvan: cari.unvan, bakiye: yeniBakiye }, 'kod');
+        cari.bakiye = yeniBakiye;
+      }
+    }
+
+    tabloYenile();
+    genelBakiyeHesapla();
+    if (aktifDetayKod) await detayYukle();
+
+    toast(guncellenen > 0
+      ? `✓ ${guncellenen} adet ${yt.ad} veresiye kaydı güncel fiyatla yenilendi`
+      : `${yt.ad} ile eşleşen güncellenecek kayıt bulunamadı`);
+  } catch (err) {
+    toast('Fiyat güncelleme hatası: ' + err.message, true);
+  }
+  loading(false);
+}
+
+// YÖNETİM sekmesindeki veresiye giriş panelinde yakıt/litre seçilince açıklama ve tutarı otomatik doldurur
+function veresiyeYakitDegisti() {
+  const tur = document.getElementById('veresiyeYakitSecim').value;
+  const litre = parseFloat(document.getElementById('veresiyeLitre').value) || 0;
+  if (!tur || litre <= 0) return;
+  const yt = YAKIT_TURLERI.find(y => y.kod === tur);
+  if (!yt) return;
+  const fiyat = yakitFiyatCache[tur] || 0;
+  document.getElementById('veresiyeAciklama').value = `${yt.ad} ${litre} LT`;
+  document.getElementById('veresiyeTutar').value = (fiyat * litre).toFixed(2);
+}
+
+// Müşteri detayındaki BORÇ panelinde yakıt/litre seçilince açıklama ve tutarı otomatik doldurur
+function islemYakitDegisti() {
+  const tur = document.getElementById('islemYakitSecim').value;
+  const litre = parseFloat(document.getElementById('islemLitre').value) || 0;
+  if (!tur || litre <= 0) return;
+  const yt = YAKIT_TURLERI.find(y => y.kod === tur);
+  if (!yt) return;
+  const fiyat = yakitFiyatCache[tur] || 0;
+  document.getElementById('txtIslemAciklama').value = `${yt.ad} ${litre} LT`;
+  document.getElementById('txtIslemTutar').value = (fiyat * litre).toFixed(2);
+}
+
+// Uygulama açılışında yakıt fiyatlarını önbelleğe al (YÖNETİM sekmesi hiç açılmasa da panel kullanılabilsin)
+async function yakitFiyatlariniYukle() {
+  try {
+    const rows = await sbGet('yakit_stok', 'select=tur,fiyat');
+    (rows || []).forEach(r => { yakitFiyatCache[r.tur] = Number(r.fiyat) || 0; });
+  } catch (e) { /* sessiz geç */ }
 }
 
 // ---------- SATIŞ KAYITLARI PENCERESİ ----------
@@ -4778,6 +4916,8 @@ async function veresiyeGirisiKaydet() {
 
     document.getElementById('veresiyeAciklama').value = '';
     document.getElementById('veresiyeTutar').value = '';
+    document.getElementById('veresiyeYakitSecim').value = '';
+    document.getElementById('veresiyeLitre').value = '';
     toast('✓ Veresiye kaydedildi');
 
     await carileritabloyaYukle();
