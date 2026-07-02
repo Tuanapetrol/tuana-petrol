@@ -804,11 +804,15 @@ table.detay-table tbody td { padding:9px 12px; border-right:1px solid rgba(30,58
 
 <div class="app-body" id="cariPane">
   <div class="left-pane">
-    <div class="toolbar">
+    <div class="toolbar" style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
       <span class="toolbar-label">Cari Ünvan</span>
       <input class="tb-input" id="txtCariKod" placeholder="Kod" readonly>
-      <input class="tb-input" id="txtCariUnvan" placeholder="Müşteri Ünvanı" onkeydown="if(event.key==='Enter')cariEkle()">
-  <button class="btn" style="background: var(--green); color: #fff; padding: 6px 12px;" onclick="cariEkle()">EKLE</button>
+      
+      <div style="display: flex; gap: 4px; align-items: center;">
+        <input class="tb-input" id="txtCariUnvan" placeholder="Müşteri Ünvanı" onkeydown="if(event.key==='Enter') { cariEkle(); event.preventDefault(); }">
+        <button type="button" class="btn" style="background: var(--green); color: #fff; padding: 6px 12px; white-space: nowrap;" onclick="cariEkle()">EKLE</button>
+      </div>
+
       <span class="toolbar-label" style="margin-left:8px">Müşteri Ara</span>
       <input class="tb-input" id="txtAra" placeholder="Ara..." oninput="araFilter()">
       <button class="btn" style="background:var(--panel2);color:var(--blue-bright);border:1px solid var(--border2);" onclick="cariDuzenleAc()">✏️ F2 Düzenle</button>
