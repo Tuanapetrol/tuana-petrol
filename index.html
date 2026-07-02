@@ -4954,9 +4954,9 @@ function excelDosyaOku(file) {
     try {
       const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      // Satırları ham dizi olarak oku (üstte işletme adı satırı, altta özet satırları olabilir —
-      // bunlarla uğraşmamak için başlık satırını "Tarih" yazan satırı arayarak kendimiz buluyoruz)
-      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, dateNF: 'YYYY-MM-DD', defval: '' });
+      // Ham değerleri oku (raw:true) — metin/formatlı hale çevrilirse ABD/TR ayırıcı (,/.) karışıklığı
+      // ve tarih GG/AA sıralaması karışıklığı oluşuyordu. Ham değerle bu tamamen ortadan kalkıyor.
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' });
 
       if (!rows.length) { toast('Excel boş veya okunamadı!', true); return; }
 
@@ -4997,34 +4997,84 @@ function excelDosyaOku(file) {
       if (kolonIdx.borc === undefined) kolonIdx.borc = 4;
       if (kolonIdx.alacak === undefined) kolonIdx.alacak = 5;
 
-      const temizSayi = s => {
-        if (!s) return 0;
-        // "1.300,00 TL" → 1300.00
-        return parseFloat(
-          s.toString()
-            .replace(/\s*TL\s*/gi, '')
-            .replace(/\./g, '')
-            .replace(',', '.')
-        ) || 0;
+      // Tarih hücresinden yıl/ay/gün çıkar — Date nesnesi, Excel seri numarası veya metin olabilir
+      const tarihParcala = (deger) => {
+        if (deger instanceof Date && !isNaN(deger)) {
+          return { y: deger.getUTCFullYear(), m: deger.getUTCMonth() + 1, d: deger.getUTCDate() };
+        }
+        if (typeof deger === 'number') {
+          const dc = XLSX.SSF && XLSX.SSF.parse_date_code ? XLSX.SSF.parse_date_code(deger) : null;
+          if (dc) return { y: dc.y, m: dc.m, d: dc.d };
+          return null;
+        }
+        const s = (deger || '').toString().trim();
+        const m = s.match(/(\d{1,4})[.\/-](\d{1,2})[.\/-](\d{1,4})/);
+        if (!m) return null;
+        let a = parseInt(m[1], 10), b = parseInt(m[2], 10), c = parseInt(m[3], 10);
+        if (a > 31 || m[1].length === 4) {
+          // YYYY-MM-DD
+          return { y: a, m: b, d: c };
+        }
+        // GG.AA.YYYY (Türkçe standart format)
+        const yil = c < 100 ? 2000 + c : c;
+        return { y: yil, m: b, d: a };
       };
 
-      const tarihRegex = /\d{1,4}[.\/-]\d{1,2}[.\/-]\d{2,4}/;
+      // Saat hücresinden saat/dakika/saniye çıkar
+      const saatParcala = (deger) => {
+        if (deger instanceof Date && !isNaN(deger)) {
+          return { H: deger.getUTCHours(), M: deger.getUTCMinutes(), S: deger.getUTCSeconds() };
+        }
+        if (typeof deger === 'number') {
+          const dc = XLSX.SSF && XLSX.SSF.parse_date_code ? XLSX.SSF.parse_date_code(deger) : null;
+          if (dc) return { H: dc.H || 0, M: dc.M || 0, S: Math.floor(dc.S || 0) };
+          return null;
+        }
+        const s = (deger || '').toString().trim();
+        const m = s.match(/(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
+        if (!m) return null;
+        return { H: parseInt(m[1], 10) || 0, M: parseInt(m[2], 10) || 0, S: parseInt(m[3] || '0', 10) || 0 };
+      };
+
+      // Borç/Alacak hücresinden sayı çıkar — sayı tipi zaten doğru, metinse TR/US ayırıcı karışıklığını çöz
+      const temizSayi = (deger) => {
+        if (deger === '' || deger === null || deger === undefined) return 0;
+        if (typeof deger === 'number') return deger;
+        let s = deger.toString().replace(/\s*TL\s*/gi, '').trim();
+        if (!s) return 0;
+        const sonNokta = s.lastIndexOf('.');
+        const sonVirgul = s.lastIndexOf(',');
+        if (sonVirgul > sonNokta) {
+          s = s.replace(/\./g, '').replace(',', '.'); // TR: nokta binlik, virgül ondalık
+        } else if (sonNokta > sonVirgul) {
+          s = s.replace(/,/g, ''); // US: virgül binlik, nokta ondalık
+        } else {
+          s = s.replace(/,/g, '');
+        }
+        return parseFloat(s) || 0;
+      };
+
+      const pad2 = n => n.toString().padStart(2, '0');
       const satirlar = [];
 
       for (let i = headerRowIdx + 1; i < rows.length; i++) {
         const row = rows[i];
         if (!row || !row.length) continue;
 
-        const tarihStr = (row[kolonIdx.tarih] || '').toString().trim();
-        // Tarihi olmayan satırları atla (ör. en alttaki "Liste Borç / Liste Alacak / Liste Bakiye" özet satırları)
-        if (!tarihRegex.test(tarihStr)) continue;
+        const tp = tarihParcala(row[kolonIdx.tarih]);
+        // Tarihi olmayan/okunamayan satırları atla (ör. en alttaki "Liste Borç / Liste Alacak / Liste Bakiye" özet satırları)
+        if (!tp || !tp.y || !tp.m || !tp.d) continue;
 
-        const saatStr  = (row[kolonIdx.saat] || '').toString().trim();
+        const sp = saatParcala(row[kolonIdx.saat]) || { H: 0, M: 0, S: 0 };
         const aciklama = (row[kolonIdx.aciklama] || '').toString().trim();
         const borc     = temizSayi(row[kolonIdx.borc]);
         const tahsilat = temizSayi(row[kolonIdx.alacak]);
 
-        satirlar.push({ tarihStr, saatStr, aciklama, borc, tahsilat });
+        const tarihISO = new Date(Date.UTC(tp.y, tp.m - 1, tp.d, sp.H, sp.M, sp.S)).toISOString();
+        const tarihStr = `${pad2(tp.d)}.${pad2(tp.m)}.${tp.y}`;
+        const saatStr  = `${pad2(sp.H)}:${pad2(sp.M)}:${pad2(sp.S)}`;
+
+        satirlar.push({ tarihStr, saatStr, tarihISO, aciklama, borc, tahsilat });
       }
 
       if (!satirlar.length) {
@@ -5084,23 +5134,9 @@ async function excelVerisiniYukle() {
 
   for (const r of excelVerisi) {
     try {
-      let tarihISO;
-      const tarihStr = (r.tarihStr || '').trim();
-      const saatStr  = (r.saatStr  || '00:00:00').trim();
-
-      // DD.MM.YYYY veya DD/MM/YYYY formatını çevir
-      const m = tarihStr.match(/(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})/);
-      if (m) {
-        const [, gun, ay, yil] = m;
-        const tamYil = yil.length === 2 ? '20' + yil : yil;
-        tarihISO = new Date(`${tamYil}-${ay.padStart(2,'0')}-${gun.padStart(2,'0')}T${saatStr}`).toISOString();
-      } else {
-        tarihISO = new Date(tarihStr + 'T' + saatStr).toISOString();
-      }
-
       await sbPost('hareketler', {
         cari_kod: aktifDetayKod,
-        tarih: tarihISO,
+        tarih: r.tarihISO,
         aciklama: r.aciklama || 'Excel aktarım',
         borc: r.borc || 0,
         tahsilat: r.tahsilat || 0
