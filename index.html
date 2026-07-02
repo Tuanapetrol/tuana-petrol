@@ -807,7 +807,8 @@ table.detay-table tbody td { padding:9px 12px; border-right:1px solid rgba(30,58
     <div class="toolbar">
       <span class="toolbar-label">Cari Ünvan</span>
       <input class="tb-input" id="txtCariKod" placeholder="Kod" readonly>
-      <input class="tb-input" id="txtCariUnvan" placeholder="Müşteri adı girin..." onkeydown="cariUnvanKeyDown(event)">
+      <input class="tb-input" id="txtCariUnvan" placeholder="Müşteri Ünvanı" onkeydown="if(event.key==='Enter')cariEkle()">
+  <button class="btn" style="background: var(--green); color: #fff; padding: 6px 12px;" onclick="cariEkle()">EKLE</button>
       <span class="toolbar-label" style="margin-left:8px">Müşteri Ara</span>
       <input class="tb-input" id="txtAra" placeholder="Ara..." oninput="araFilter()">
       <button class="btn" style="background:var(--panel2);color:var(--blue-bright);border:1px solid var(--border2);" onclick="cariDuzenleAc()">✏️ F2 Düzenle</button>
