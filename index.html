@@ -1503,12 +1503,16 @@ table.detay-table tbody td { padding:9px 12px; border-right:1px solid rgba(30,58
     </div>
     <div class="rapor-body" style="padding:20px;">
       <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">
-        Excel dosyanızda şu sütunlar olmalı (sıra önemli değil):
+        Excel dosyanızdan sadece cari hareketleri alınır. Sütun sırası önemli değildir:
         <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
           <span style="background:rgba(66,165,245,0.15);color:var(--blue-bright);padding:3px 8px;border-radius:4px;font-size:12px;font-weight:700;">Tarih</span>
+          <span style="background:rgba(66,165,245,0.15);color:var(--blue-bright);padding:3px 8px;border-radius:4px;font-size:12px;font-weight:700;">Saat</span>
           <span style="background:rgba(66,165,245,0.15);color:var(--blue-bright);padding:3px 8px;border-radius:4px;font-size:12px;font-weight:700;">Açıklama</span>
           <span style="background:rgba(255,68,68,0.15);color:var(--red);padding:3px 8px;border-radius:4px;font-size:12px;font-weight:700;">Borç</span>
           <span style="background:rgba(102,187,106,0.15);color:var(--green2);padding:3px 8px;border-radius:4px;font-size:12px;font-weight:700;">Tahsilat</span>
+        </div>
+        <div style="margin-top:8px;font-size:12px;color:var(--text-muted);">
+          `Tür` sütunu varsa yok sayılır. Önizleme ve kayıt ekranında `Tarih / Saat`, `Açıklama`, `Borç`, `Tahsilat` kullanılır.
         </div>
       </div>
 
@@ -4929,6 +4933,119 @@ async function gununOzetiYukle() {
 // ═══════════════════════════════════════════════════════
 let excelVerisi = [];
 
+function excelMetinNorm(v) {
+  return (v ?? '')
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/i̇/g, 'i')
+    .replace(/ı/g, 'i')
+    .replace(/ç/g, 'c')
+    .replace(/ş/g, 's')
+    .replace(/ö/g, 'o')
+    .replace(/ü/g, 'u')
+    .replace(/ğ/g, 'g')
+    .replace(/\s+/g, '')
+    .replace(/[^a-z0-9:/.-]/g, '');
+}
+
+function excelBaslikSatiriBul(rows) {
+  const arananlar = ['tarih', 'saat', 'aciklama', 'borc', 'alacak', 'tahsilat'];
+  let enIyiIndex = -1;
+  let enIyiSkor = 0;
+
+  rows.slice(0, 12).forEach((row, index) => {
+    const hucreler = (row || []).map(excelMetinNorm).filter(Boolean);
+    if (!hucreler.length) return;
+
+    let skor = 0;
+    arananlar.forEach(kelime => {
+      if (hucreler.some(h => h.includes(kelime))) skor++;
+    });
+    if (hucreler.some(h => h === 'tarih') && hucreler.some(h => h.includes('borc') || h.includes('alacak') || h.includes('tahsilat'))) skor += 2;
+
+    if (skor > enIyiSkor) {
+      enIyiSkor = skor;
+      enIyiIndex = index;
+    }
+  });
+
+  return enIyiSkor >= 3 ? enIyiIndex : -1;
+}
+
+function excelKolonIndexBul(basliklar, adaylar, fallbackIndex = -1) {
+  const idx = basliklar.findIndex(h => adaylar.some(aday => h === excelMetinNorm(aday) || h.includes(excelMetinNorm(aday))));
+  return idx >= 0 ? idx : fallbackIndex;
+}
+
+function excelTarihSaatParcala(tarihDegeri, saatDegeri = '') {
+  const tarihHam = (tarihDegeri ?? '').toString().trim();
+  const saatHam = (saatDegeri ?? '').toString().trim();
+  const birlesikHam = `${tarihHam} ${saatHam}`.trim();
+
+  const tarihSaatEslesme = birlesikHam.match(/(\d{1,4}[./-]\d{1,2}[./-]\d{1,4})(?:\s+|T)?(\d{1,2}:\d{2}(?::\d{2})?)?/);
+  let tarihStr = tarihHam;
+  let saatStr = saatHam;
+
+  if (tarihSaatEslesme) {
+    tarihStr = tarihSaatEslesme[1] || tarihStr;
+    saatStr = tarihSaatEslesme[2] || saatStr;
+  }
+
+  if (saatStr && /^\d{1,2}:\d{2}$/.test(saatStr)) saatStr += ':00';
+  if (!saatStr) saatStr = '00:00:00';
+
+  const m = tarihStr.match(/(\d{1,4})[./-](\d{1,2})[./-](\d{1,4})/);
+  if (!m) return { tarihStr, saatStr, tarihSaat: `${tarihStr} ${saatStr}`.trim(), tarihISO: null };
+
+  let yil, ay, gun;
+  if (m[1].length === 4) {
+    yil = m[1];
+    ay = m[2];
+    gun = m[3];
+  } else {
+    gun = m[1];
+    ay = m[2];
+    yil = m[3];
+  }
+
+  if (yil.length === 2) yil = `20${yil}`;
+  const isoAday = `${yil.padStart(4, '0')}-${ay.padStart(2, '0')}-${gun.padStart(2, '0')}T${saatStr}`;
+  const dt = new Date(isoAday);
+
+  return {
+    tarihStr: `${gun.padStart(2, '0')}.${ay.padStart(2, '0')}.${yil}`,
+    saatStr,
+    tarihSaat: `${gun.padStart(2, '0')}.${ay.padStart(2, '0')}.${yil} ${saatStr}`.trim(),
+    tarihISO: Number.isNaN(dt.getTime()) ? null : dt.toISOString()
+  };
+}
+
+function excelSayiTemizle(deger) {
+  if (deger === null || deger === undefined || deger === '') return 0;
+  if (typeof deger === 'number') return Number.isFinite(deger) ? deger : 0;
+
+  let s = deger.toString().trim();
+  if (!s) return 0;
+
+  const negatif = s.includes('-') || /^\(.*\)$/.test(s);
+  s = s.replace(/[()]/g, '').replace(/\s*TL\s*/gi, '').replace(/[₺\s]/g, '').replace(/[^0-9,.-]/g, '');
+
+  const sonVirgul = s.lastIndexOf(',');
+  const sonNokta = s.lastIndexOf('.');
+  if (sonVirgul > sonNokta) {
+    s = s.replace(/\./g, '').replace(',', '.');
+  } else if (sonNokta > sonVirgul) {
+    s = s.replace(/,/g, '');
+  } else {
+    s = s.replace(',', '.');
+  }
+
+  const sayi = parseFloat(s);
+  if (!Number.isFinite(sayi)) return 0;
+  return negatif ? -Math.abs(sayi) : sayi;
+}
+
 function exceldenAlAc() {
   excelVerisi = [];
   document.getElementById('excelOnizleme').style.display = 'none';
@@ -4954,57 +5071,42 @@ function excelDosyaOku(file) {
     try {
       const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      // 1. satır işletme adı, 2. satır başlık — veriler 3. satırdan başlıyor (header:1 ile 2. satırı başlık kabul et)
-      const json = XLSX.utils.sheet_to_json(ws, { raw: false, dateNF: 'YYYY-MM-DD', defval: '' });
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' })
+        .map(row => Array.isArray(row) ? row.map(cell => (cell ?? '').toString().trim()) : [])
+        .filter(row => row.some(cell => cell !== ''));
 
-      if (!json.length) { toast('Excel boş veya okunamadı!', true); return; }
+      if (!rows.length) { toast('Excel boş veya okunamadı!', true); return; }
 
-      // İlk satır işletme adı satırıysa atla (A sütununda tarih gibi değer yoksa)
-      const temizSatirlar = json.filter(row => {
-        const ilkDeger = Object.values(row)[0] || '';
-        // Tarih formatında mı? (dd.mm.yyyy veya yyyy-mm-dd)
-        return /\d{1,4}[.\/-]\d{1,2}[.\/-]\d{2,4}/.test(ilkDeger.toString());
+      const baslikSatiriIndex = excelBaslikSatiriBul(rows);
+      const baslikSatiri = baslikSatiriIndex >= 0 ? rows[baslikSatiriIndex].map(excelMetinNorm) : [];
+      const veriSatirlari = baslikSatiriIndex >= 0 ? rows.slice(baslikSatiriIndex + 1) : rows;
+
+      const tarihIdx = excelKolonIndexBul(baslikSatiri, ['Tarih', 'Date'], 0);
+      const saatIdx = excelKolonIndexBul(baslikSatiri, ['Saat', 'Time'], 1);
+      const aciklamaIdx = excelKolonIndexBul(baslikSatiri, ['Açıklama', 'Aciklama', 'Detay', 'Not', 'İşlem', 'Islem'], 3);
+      const borcIdx = excelKolonIndexBul(baslikSatiri, ['Borç', 'Borc', 'Debt'], 4);
+      const tahsilatIdx = excelKolonIndexBul(baslikSatiri, ['Tahsilat', 'Alacak', 'Ödeme', 'Odeme', 'Collection'], 5);
+
+      const satirlar = veriSatirlari.map((row, index) => {
+        const tarihBilgi = excelTarihSaatParcala(row[tarihIdx], row[saatIdx]);
+        const aciklama = (row[aciklamaIdx] || '').toString().trim();
+        const borc = excelSayiTemizle(row[borcIdx]);
+        const tahsilat = excelSayiTemizle(row[tahsilatIdx]);
+
+        return {
+          kaynakSatir: baslikSatiriIndex >= 0 ? baslikSatiriIndex + index + 2 : index + 1,
+          tarihStr: tarihBilgi.tarihStr,
+          saatStr: tarihBilgi.saatStr,
+          tarihSaat: tarihBilgi.tarihSaat,
+          tarihISO: tarihBilgi.tarihISO,
+          aciklama,
+          borc: borc > 0 ? borc : 0,
+          tahsilat: tahsilat > 0 ? tahsilat : 0
+        };
+      }).filter(r => {
+        const tarihVar = !!r.tarihISO || /\d{1,4}[./-]\d{1,2}[./-]\d{1,4}/.test(r.tarihStr || '');
+        return tarihVar && (r.borc > 0 || r.tahsilat > 0);
       });
-
-      // Sütun isimleri: A=Tarih, B=Saat, C=Tür, D=Açıklama, E=Borç, F=Alacak
-      // JSON key'leri sütun başlıklarından geliyor — hem isimle hem index ile dene
-      const kolonlar = Object.keys(json[0] || {});
-
-      // Sütun adlarını bul (Türkçe normalize)
-      const norm = s => (s || '').toString().toLowerCase()
-        .replace(/i̇/g,'i').replace(/ı/g,'i').replace(/ç/g,'c')
-        .replace(/ş/g,'s').replace(/ö/g,'o').replace(/ü/g,'u').replace(/ğ/g,'g')
-        .replace(/\s+/g,'').replace(/[^a-z0-9]/g,'');
-
-      const bul = (araList) => kolonlar.find(k => araList.some(a => norm(k) === norm(a)));
-
-      // A,B,C,D,E,F indeksli olabilir veya isimli
-      const tarihKol  = bul(['Tarih','tarih','A','date']) || kolonlar[0];
-      const saatKol   = bul(['Saat','saat','B','time'])  || kolonlar[1];
-      const aciklamaKol = bul(['Aciklama','Açıklama','aciklama','D','detay','Detay','not','Not','Islem','islem']) || kolonlar[3];
-      const borcKol   = bul(['Borc','Borç','borc','E','debt']) || kolonlar[4];
-      const tahsilatKol = bul(['Alacak','alacak','Tahsilat','tahsilat','F','odeme','Odeme']) || kolonlar[5];
-
-      const temizSayi = s => {
-        if (!s) return 0;
-        // "1.300,00 TL" → 1300.00
-        return parseFloat(
-          s.toString()
-            .replace(/\s*TL\s*/gi, '')
-            .replace(/\./g, '')
-            .replace(',', '.')
-        ) || 0;
-      };
-
-      const satirlar = (temizSatirlar.length > 0 ? temizSatirlar : json).map(row => {
-        const tarihStr = (row[tarihKol] || '').toString().trim();
-        const saatStr  = (row[saatKol]  || '').toString().trim();
-        const aciklama = (row[aciklamaKol] || '').toString().trim();
-        const borc     = temizSayi(row[borcKol]);
-        const tahsilat = temizSayi(row[tahsilatKol]);
-
-        return { tarihStr, saatStr, aciklama, borc, tahsilat };
-      }).filter(r => r.borc > 0 || r.tahsilat > 0);
 
       if (!satirlar.length) {
         toast('Okunabilir borç/tahsilat verisi bulunamadı!', true);
@@ -5032,7 +5134,7 @@ function excelOnizlemeGoster() {
   tablo.innerHTML = `
     <thead style="position:sticky;top:0;">
       <tr>
-        <th style="background:var(--panel2);padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);color:var(--text-muted);">Tarih</th>
+        <th style="background:var(--panel2);padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);color:var(--text-muted);">Tarih / Saat</th>
         <th style="background:var(--panel2);padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);color:var(--text-muted);">Açıklama</th>
         <th style="background:var(--panel2);padding:6px 8px;text-align:right;border-bottom:1px solid var(--border);color:var(--red);">Borç</th>
         <th style="background:var(--panel2);padding:6px 8px;text-align:right;border-bottom:1px solid var(--border);color:var(--green2);">Tahsilat</th>
@@ -5041,7 +5143,7 @@ function excelOnizlemeGoster() {
     <tbody>
       ${goruntu.map(r => `
         <tr>
-          <td style="padding:5px 8px;border-bottom:1px solid rgba(255,255,255,0.05);color:var(--text-muted);font-size:11px;">${r.tarihStr} ${r.saatStr}</td>
+          <td style="padding:5px 8px;border-bottom:1px solid rgba(255,255,255,0.05);color:var(--text-muted);font-size:11px;">${r.tarihSaat || `${r.tarihStr} ${r.saatStr}`.trim()}</td>
           <td style="padding:5px 8px;border-bottom:1px solid rgba(255,255,255,0.05);">${r.aciklama || '-'}</td>
           <td style="padding:5px 8px;border-bottom:1px solid rgba(255,255,255,0.05);text-align:right;color:var(--red);">${r.borc > 0 ? fmt(r.borc) : ''}</td>
           <td style="padding:5px 8px;border-bottom:1px solid rgba(255,255,255,0.05);text-align:right;color:var(--green2);">${r.tahsilat > 0 ? fmt(r.tahsilat) : ''}</td>
@@ -5063,23 +5165,11 @@ async function excelVerisiniYukle() {
 
   for (const r of excelVerisi) {
     try {
-      let tarihISO;
-      const tarihStr = (r.tarihStr || '').trim();
-      const saatStr  = (r.saatStr  || '00:00:00').trim();
-
-      // DD.MM.YYYY veya DD/MM/YYYY formatını çevir
-      const m = tarihStr.match(/(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})/);
-      if (m) {
-        const [, gun, ay, yil] = m;
-        const tamYil = yil.length === 2 ? '20' + yil : yil;
-        tarihISO = new Date(`${tamYil}-${ay.padStart(2,'0')}-${gun.padStart(2,'0')}T${saatStr}`).toISOString();
-      } else {
-        tarihISO = new Date(tarihStr + 'T' + saatStr).toISOString();
-      }
+      if (!r.tarihISO) throw new Error('Geçersiz tarih');
 
       await sbPost('hareketler', {
         cari_kod: aktifDetayKod,
-        tarih: tarihISO,
+        tarih: r.tarihISO,
         aciklama: r.aciklama || 'Excel aktarım',
         borc: r.borc || 0,
         tahsilat: r.tahsilat || 0
