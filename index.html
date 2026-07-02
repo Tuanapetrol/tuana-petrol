@@ -1085,7 +1085,7 @@ table.detay-table tbody td { padding:9px 12px; border-right:1px solid rgba(30,58
               <div class="yakit-secim-row" style="display:flex;gap:8px;">
                 <div style="flex:1;">
                   <div class="islem-field-label">Yakıt</div>
-                  <select class="islem-input" id="islemYakitSecim" style="width:100%;padding:6px 8px;" onchange="islemYakitDegisti()">
+                  <select class="islem-input" id="islemYakitSecim" style="width:100%;padding:6px 8px;" onchange="islemYakitDegisti()" onkeydown="islemYakitSecimKeyDown(event)">
                     <option value="">— Yok —</option>
                     <option value="mazot">Mazot</option>
                     <option value="benzin">Benzin</option>
@@ -1094,7 +1094,7 @@ table.detay-table tbody td { padding:9px 12px; border-right:1px solid rgba(30,58
                 </div>
                 <div style="width:90px;">
                   <div class="islem-field-label">Litre</div>
-                  <input class="islem-input" id="islemLitre" type="number" placeholder="0" style="width:100%;padding:6px 8px;" oninput="islemYakitDegisti()">
+                  <input class="islem-input" id="islemLitre" type="number" placeholder="0" style="width:100%;padding:6px 8px;" oninput="islemYakitDegisti()" onkeydown="islemLitreKeyDown(event)">
                 </div>
               </div>
               <div>
@@ -2056,7 +2056,7 @@ function borcPanelAc(){
   document.getElementById('txtIslemTutar').value='';
   const yakitSel=document.getElementById('islemYakitSecim'); if(yakitSel) yakitSel.value='';
   const litreInp=document.getElementById('islemLitre'); if(litreInp) litreInp.value='';
-  document.getElementById('txtIslemAciklama').focus();
+  if (yakitSel) yakitSel.focus(); else document.getElementById('txtIslemAciklama').focus();
 }
 function tahsilatPanelAc(){
   const p=document.getElementById('islemPanel');
@@ -4772,6 +4772,31 @@ function veresiyeYakitDegisti() {
   const fiyat = yakitFiyatCache[tur] || 0;
   document.getElementById('veresiyeAciklama').value = `${yt.ad} ${litre} LT`;
   document.getElementById('veresiyeTutar').value = (fiyat * litre).toFixed(2);
+}
+
+// Yakıt Türü kutucuğunda ENTER/TAB: yakıt seçiliyse Litre'ye, seçili değilse doğrudan Açıklama'ya geç
+function islemYakitSecimKeyDown(e) {
+  if (e.key === 'Enter' || e.key === 'Tab') {
+    e.preventDefault();
+    const tur = document.getElementById('islemYakitSecim').value;
+    if (tur) {
+      const litreInp = document.getElementById('islemLitre');
+      litreInp.focus(); litreInp.select();
+    } else {
+      const acikInp = document.getElementById('txtIslemAciklama');
+      acikInp.focus(); acikInp.select();
+    }
+  }
+}
+
+// Litre kutucuğunda ENTER/TAB: son bir kez hesapla ve Açıklama'ya geç
+function islemLitreKeyDown(e) {
+  if (e.key === 'Enter' || e.key === 'Tab') {
+    e.preventDefault();
+    islemYakitDegisti();
+    const acikInp = document.getElementById('txtIslemAciklama');
+    acikInp.focus(); acikInp.select();
+  }
 }
 
 // Müşteri detayındaki BORÇ panelinde yakıt/litre seçilince açıklama ve tutarı otomatik doldurur
