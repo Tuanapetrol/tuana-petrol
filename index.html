@@ -392,7 +392,6 @@ table.detay-table tbody td { padding:9px 12px; border-right:1px solid rgba(30,58
 .dcol-aciklama { width:auto; min-width:200px; }
 .dcol-borc { width:110px; text-align:right; font-family:'Roboto Mono',monospace; }
 .dcol-tahsilat { width:110px; text-align:right; font-family:'Roboto Mono',monospace; }
-.dcol-bakiye { width:120px; text-align:right; font-family:'Roboto Mono',monospace; }
 
 .detay-right-pane { background:var(--bg2); padding:16px; display:flex; flex-direction:column; gap:16px; overflow-y:auto; }
 
@@ -1067,7 +1066,6 @@ table.detay-table tbody td { padding:9px 12px; border-right:1px solid rgba(30,58
                 <th class="dcol-aciklama">Açıklama</th>
                 <th class="dcol-borc">Borç</th>
                 <th class="dcol-tahsilat">Tahsilat</th>
-                <th class="dcol-bakiye">Bakiye</th>
               </tr>
             </thead>
             <tbody id="detayTbody"></tbody>
@@ -1114,6 +1112,11 @@ table.detay-table tbody td { padding:9px 12px; border-right:1px solid rgba(30,58
            • <span style="color:var(--green2)">F6</span>: Tahsilat Giriş Panelini Aç<br>
            • <strong>ENTER</strong>: Kaydet / Alan Geçişi<br>
            • <strong>ESC</strong>: Paneli Kapat / Çıkış
+         </div>
+         <div id="detayBakiyeKutu" style="margin-top:auto;background:rgba(0,0,0,0.28);border:2px solid var(--border2);border-radius:10px;padding:18px;text-align:center;">
+           <div style="font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.8px;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px;">GÜNCEL BAKİYE</div>
+           <div id="detayBakiyeTutar" style="font-family:'Roboto Mono',monospace;font-size:34px;font-weight:900;line-height:1.1;">0,00 ₺</div>
+           <div id="detayBakiyeDurum" style="font-size:12px;font-weight:800;letter-spacing:1px;margin-top:6px;"></div>
          </div>
       </div>
     </div>
@@ -1976,6 +1979,7 @@ async function cariAc(kod) {
   const c=cariListesi.find(x=>x.kod==kod); if(!c) return;
   aktifDetayKod=kod; seciliDetayIds=[];
   document.getElementById('detayTitle').textContent=c.unvan;
+  detayBakiyeGuncelle(c.bakiye);
   await detayYukle();
   document.getElementById('detayOverlay').classList.add('active');
   islemPanelKapat();
@@ -2007,8 +2011,7 @@ async function detayYukle() {
         <td class="dcol-tarih" style="color:${renk};font-size:13px">${r.tarih ? new Date(r.tarih).toLocaleString("tr-TR",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}) : ""}</td>
         <td class="dcol-aciklama" style="color:${renk}">${r.aciklama}</td>
         <td class="dcol-borc" style="color:${renk}">${fmt(r.borc)}</td>
-        <td class="dcol-tahsilat" style="color:${renk}">${fmt(r.tahsilat)}</td>
-        <td class="dcol-bakiye" style="color:${renk}">${fmt(bakiyeMap[r.id])}</td>`;
+        <td class="dcol-tahsilat" style="color:${renk}">${fmt(r.tahsilat)}</td>`;
 
       tr.addEventListener('click', ev => {
         if (ev.ctrlKey || ev.metaKey) {
@@ -2033,8 +2036,22 @@ async function detayYukle() {
       });
       tbody.appendChild(tr);
     });
+
+    detayBakiyeGuncelle(b);
   } catch(err){toast('Detay yükleme hatası: '+err.message,true);}
   loading(false);
+}
+
+function detayBakiyeGuncelle(bakiye) {
+  const tutarEl = document.getElementById('detayBakiyeTutar');
+  const durumEl = document.getElementById('detayBakiyeDurum');
+  if (!tutarEl || !durumEl) return;
+  const b = Number(bakiye) || 0;
+  const renk = b > 0 ? '#ff4444' : b < 0 ? 'var(--blue-bright)' : '#66bb6a';
+  tutarEl.style.color = renk;
+  tutarEl.textContent = fmt(b) + ' ₺';
+  durumEl.style.color = renk;
+  durumEl.textContent = b > 0 ? 'BORÇLU' : b < 0 ? 'ALACAKLI' : 'HESAP KAPALI';
 }
 
 async function detayKapat() {
