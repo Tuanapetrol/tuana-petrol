@@ -4671,9 +4671,18 @@ async function yakitStokYukle() {
         <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px;">Satılan Litre</div>
         <input type="number" class="islem-input" id="stokSatis_${yt.kod}" value="0" placeholder="0" style="width:100%;padding:6px 8px;" onfocus="this.select()" onkeydown="if(event.key==='Enter')yakitStokKaydet('${yt.kod}')">
       </div>
+      <div style="flex:1;">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px;">Satış Tarihi</div>
+        <input type="date" class="islem-input" id="stokTarih_${yt.kod}" style="width:100%;padding:6px 8px;">
+      </div>
       <button class="btn" style="background:${yt.renk};color:#fff;align-self:flex-end;padding:7px 12px;" onclick="yakitStokKaydet('${yt.kod}')">KAYDET</button>
     `;
     liste.appendChild(satir);
+
+    // Varsayılan tarih: dün
+    const dun = new Date();
+    dun.setDate(dun.getDate() - 1);
+    document.getElementById('stokTarih_' + yt.kod).value = dun.toISOString().slice(0, 10);
 
     const kart = document.createElement('div');
     kart.style.cssText = 'background:rgba(0,0,0,0.25);border-radius:6px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;border-left:3px solid ' + yt.renk + ';';
@@ -4694,6 +4703,19 @@ async function yakitStokKaydet(tur) {
   const yeniFiyat = parseFloat(document.getElementById('stokFiyat_' + tur).value) || 0;
   const eskiFiyat = yakitFiyatCache[tur] || 0;
   const yeniLitre = mevcutLitre - satisLitre;
+
+  // Seçili tarihi al, yoksa dün
+  const tarihInput = document.getElementById('stokTarih_' + tur);
+  let satisTarih;
+  if (tarihInput && tarihInput.value) {
+    satisTarih = new Date(tarihInput.value + 'T12:00:00').toISOString();
+  } else {
+    const dun = new Date();
+    dun.setDate(dun.getDate() - 1);
+    dun.setHours(12, 0, 0, 0);
+    satisTarih = dun.toISOString();
+  }
+
   try {
     await sbUpsert('yakit_stok', { tur, litre: yeniLitre, fiyat: yeniFiyat }, 'tur');
     yakitFiyatCache[tur] = yeniFiyat;
@@ -4704,11 +4726,17 @@ async function yakitStokKaydet(tur) {
         tur,
         tur_adi: ytInfo ? ytInfo.ad : tur,
         litre: satisLitre,
-        tarih: new Date().toISOString()
+        tarih: satisTarih
       });
     }
 
     document.getElementById('stokSatis_' + tur).value = '0';
+    // Tarihi tekrar dünü göster
+    if (tarihInput) {
+      const dun = new Date();
+      dun.setDate(dun.getDate() - 1);
+      tarihInput.value = dun.toISOString().slice(0, 10);
+    }
     toast(satisLitre > 0 ? `✓ ${satisLitre} litre düşüldü` : '✓ Stok/fiyat güncellendi');
     await yakitStokYukle();
 
