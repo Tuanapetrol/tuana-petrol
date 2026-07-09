@@ -1686,25 +1686,39 @@ async function setSifre(s) {
 async function loginDene() {
   const v = document.getElementById('loginSifre').value;
   if (!v) return;
-  document.getElementById('loginError').textContent = '';
+  const errEl = document.getElementById('loginError');
+  errEl.textContent = '';
+
+  // Önce localStorage'dan al, sonra Supabase'den dene
+  let dogruSifre = localStorage.getItem('tp_sifre') || '1234';
   try {
-    const dogruSifre = await getSifre();
-    if (v === dogruSifre) {
-      document.getElementById('loginOverlay').classList.remove('active');
-      init();
-    } else {
-      document.getElementById('loginError').textContent = 'Şifre hatalı!';
-      document.getElementById('loginSifre').value = '';
-      document.getElementById('loginSifre').focus();
-    }
-  } catch(e) {
-    document.getElementById('loginError').textContent = 'Bağlantı hatası!';
+    const rows = await sbGet('ayarlar', 'select=deger&anahtar=eq.sifre&limit=1');
+    if (rows && rows.length > 0) dogruSifre = rows[0].deger;
+  } catch(e) {}
+
+  if (v === dogruSifre) {
+    // 7 gün oturumu açık tut
+    const expire = Date.now() + 7 * 24 * 60 * 60 * 1000;
+    localStorage.setItem('tp_oturum', expire.toString());
+    document.getElementById('loginOverlay').classList.remove('active');
+    init();
+  } else {
+    errEl.textContent = 'Şifre hatalı!';
+    document.getElementById('loginSifre').value = '';
+    document.getElementById('loginSifre').focus();
   }
 }
 document.getElementById('loginSifre').addEventListener('keydown', e => { if(e.key==='Enter') loginDene(); });
 
 window.addEventListener('load', () => {
-  setTimeout(() => document.getElementById('loginSifre').focus(), 100);
+  // 7 gün içinde giriş yapıldıysa tekrar şifre isteme
+  const oturum = localStorage.getItem('tp_oturum');
+  if (oturum && Date.now() < parseInt(oturum)) {
+    document.getElementById('loginOverlay').classList.remove('active');
+    init();
+  } else {
+    setTimeout(() => document.getElementById('loginSifre').focus(), 100);
+  }
 });
 
 // ═══════════════════════════════════════════════════════
@@ -2216,35 +2230,41 @@ function gunlukRaporEkraniAc() {
 async function gunlukRaporHesaplaVeListele() {
   const secilenTarihRaw = document.getElementById('raporTarihGirdisi').value;
   if(!secilenTarihRaw) return;
-  
+
   const parca = secilenTarihRaw.split('-');
   const hedefFormat = `${parca[2]}.${parca[1]}.${parca[0]}`;
-  
+
+  const gunBasi = new Date(secilenTarihRaw + 'T00:00:00').toISOString();
+  const gunSonu = new Date(secilenTarihRaw + 'T00:00:00');
+  gunSonu.setDate(gunSonu.getDate() + 1);
+  const gunSonuISO = gunSonu.toISOString();
+
   loading(true, 'Rapor verileri getiriliyor...');
   try {
-    const hareketler = await sbGet('hareketler', 'order=cari_kod.asc');
-    let satirlar = '', tB = 0, tT = 0, bulundu = false;
-    
-    hareketler.forEach(r => {
-      if(r.tarih.startsWith(hedefFormat)) {
-        bulundu = true;
-        tB += Number(r.borc);
-        tT += Number(r.tahsilat);
-        const c = cariListesi.find(x => x.kod == r.cari_kod);
-        const cls = Number(r.borc) > 0 ? 'color:#ff4444' : 'color:#43a047';
-        satirlar += `
-          <tr style="${cls}">
-            <td style="padding:8px; border:1px solid var(--border); font-weight:bold;">${r.cari_kod}</td>
-            <td style="padding:8px; border:1px solid var(--border); font-weight:bold;">${c?.unvan || 'Bilinmeyen'}</td>
-            <td style="padding:8px; border:1px solid var(--border); font-weight:bold;">${r.aciklama}</td>
-            <td style="padding:8px; border:1px solid var(--border); text-align:right; font-family:'Roboto Mono'; font-weight:bold;">${fmt(r.borc)}</td>
-            <td style="padding:8px; border:1px solid var(--border); text-align:right; font-family:'Roboto Mono'; font-weight:bold;">${fmt(r.tahsilat)}</td>
-          </tr>`;
-      }
+    const hareketler = await sbGet('hareketler',
+      `select=*&tarih=gte.${gunBasi}&tarih=lt.${gunSonuISO}&order=cari_kod.asc`
+    );
+    let satirlar = '', tB = 0, tT = 0;
+
+    (hareketler || []).forEach(r => {
+      tB += Number(r.borc);
+      tT += Number(r.tahsilat);
+      const c = cariListesi.find(x => x.kod == r.cari_kod);
+      const cls = Number(r.borc) > 0 ? 'color:#ff4444' : 'color:#43a047';
+      const saatStr = r.tarih ? new Date(r.tarih).toLocaleTimeString('tr-TR', {hour:'2-digit',minute:'2-digit'}) : '';
+      satirlar += `
+        <tr style="${cls}">
+          <td style="padding:8px; border:1px solid var(--border); font-weight:bold;">${r.cari_kod}</td>
+          <td style="padding:8px; border:1px solid var(--border); font-weight:bold;">${c?.unvan || 'Bilinmeyen'}</td>
+          <td style="padding:8px; border:1px solid var(--border); font-weight:bold;">${r.aciklama}</td>
+          <td style="padding:8px; border:1px solid var(--border); text-align:right; font-family:'Roboto Mono'; font-weight:bold;">${fmt(r.borc)}</td>
+          <td style="padding:8px; border:1px solid var(--border); text-align:right; font-family:'Roboto Mono'; font-weight:bold;">${fmt(r.tahsilat)}</td>
+          <td style="padding:8px; border:1px solid var(--border); text-align:center; color:var(--text-muted); font-size:12px;">${saatStr}</td>
+        </tr>`;
     });
-    
+
     const alan = document.getElementById('raporIcerikTabloAlani');
-    if(!bulundu) {
+    if(!satirlar) {
       alan.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-muted); font-weight:bold;">⚠️ Seçtiğiniz tarihe (${hedefFormat}) ait hareket kaydı bulunamadı.</div>`;
     } else {
       alan.innerHTML = `
@@ -2252,10 +2272,11 @@ async function gunlukRaporHesaplaVeListele() {
           <thead>
             <tr style="background:var(--header-bg)">
               <th style="padding:8px; border:1px solid var(--border); font-family:Oswald; text-align:left; color:var(--blue-bright)">KOD</th>
-              <th style="padding:8px; border:1px solid var(--border); font-family:Oswald; text-align:left; color:var(--blue-bright)">MÜŞTERI</th>
+              <th style="padding:8px; border:1px solid var(--border); font-family:Oswald; text-align:left; color:var(--blue-bright)">MÜŞTERİ</th>
               <th style="padding:8px; border:1px solid var(--border); font-family:Oswald; text-align:left; color:var(--blue-bright)">AÇIKLAMA</th>
               <th style="padding:8px; border:1px solid var(--border); font-family:Oswald; text-align:right; color:var(--blue-bright)">BORÇ</th>
               <th style="padding:8px; border:1px solid var(--border); font-family:Oswald; text-align:right; color:var(--blue-bright)">TAHSİLAT</th>
+              <th style="padding:8px; border:1px solid var(--border); font-family:Oswald; text-align:center; color:var(--blue-bright)">SAAT</th>
             </tr>
           </thead>
           <tbody>${satirlar}</tbody>
@@ -2264,6 +2285,7 @@ async function gunlukRaporHesaplaVeListele() {
               <td colspan="3" style="padding:8px; border:1px solid var(--border); text-align:right; color:var(--white)">TOPLAM:</td>
               <td style="padding:8px; border:1px solid var(--border); text-align:right; color:#ff4444; font-family:'Roboto Mono'">${fmt(tB)}</td>
               <td style="padding:8px; border:1px solid var(--border); text-align:right; color:#43a047; font-family:'Roboto Mono'">${fmt(tT)}</td>
+              <td style="border:1px solid var(--border)"></td>
             </tr>
           </tfoot>
         </table>
