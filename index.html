@@ -1075,6 +1075,7 @@ table.detay-table tbody td { padding:9px 12px; border-right:1px solid rgba(30,58
     <div class="detay-titlebar">
       <span class="detay-title" id="detayTitle">MÜŞTERİ</span>
       <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn" style="background:var(--panel2);color:var(--blue-bright);border:1px solid var(--border2);font-size:12px;padding:4px 10px;" onclick="hareketDuzenleAc()">✏️ DÜZENLE</button>
         <button class="btn" style="background:var(--panel2);color:#1d6f42;border:1px solid #1d6f42;font-size:12px;padding:4px 10px;" onclick="exceldenAlAc()">📥 EXCEL'DEN AL</button>
         <button class="btn" style="background:var(--panel2);color:var(--blue-bright);border:1px solid var(--border2);font-size:12px;padding:4px 10px;" onclick="musteriKartiAc()">👤 MÜŞTERİ KARTI</button>
         <button class="detay-close" onclick="detayKapat()">✕</button>
@@ -2090,6 +2091,17 @@ async function detayYukle() {
           tr.classList.add('selected');
           tr.querySelector('.row-arrow').style.display = 'inline';
         }
+      });
+
+      tr.addEventListener('dblclick', () => {
+        document.querySelectorAll('#detayTbody tr').forEach(t => {
+          t.classList.remove('selected');
+          t.querySelector('.row-arrow').style.display = 'none';
+        });
+        seciliDetayIds = [rId];
+        tr.classList.add('selected');
+        tr.querySelector('.row-arrow').style.display = 'inline';
+        hareketDuzenleAc();
       });
       tbody.appendChild(tr);
     });
