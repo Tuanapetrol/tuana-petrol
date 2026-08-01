@@ -2273,7 +2273,13 @@ async function cariAc(kod) {
 async function detayYukle() {
   loading(true,'Hareketler yükleniyor...');
   try {
-    const hareketler = await sbGet('hareketler',`cari_kod=eq.${aktifDetayKod}&order=id.desc`);
+    let hareketler = await sbGet('hareketler',`cari_kod=eq.${aktifDetayKod}&order=tarih.desc,id.desc`);
+    hareketler = [...hareketler].sort((a,b)=>{
+      const ta = a.tarih ? new Date(a.tarih).getTime() : 0;
+      const tb = b.tarih ? new Date(b.tarih).getTime() : 0;
+      if (tb !== ta) return tb - ta;
+      return Number(b.id) - Number(a.id);
+    });
     const tbody=document.getElementById('detayTbody'); tbody.innerHTML='';
     seciliDetayIds=[];
     const eskidenYeni=[...hareketler].reverse();
