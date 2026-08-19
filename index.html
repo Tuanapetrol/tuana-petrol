@@ -2041,6 +2041,9 @@ let seciliCariKodlar = [];
 
 async function carileritabloyaYukle() {
   cariListesi = await sbGet('cariler','order=kod.asc');
+  // Sunucu tarafında "kod" metin olarak sıralanmış olabilir (1,10,11,2,20... gibi).
+  // Burada sayısal olarak kesin doğru sırayı garanti ediyoruz: 1,2,3,4...
+  cariListesi.sort((a,b) => Number(a.kod) - Number(b.kod));
   tabloYenile();
 }
 
